@@ -84,21 +84,16 @@ services:
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   minio-init:
     image: minio/mc:latest
     container_name: agora-minio-init
     networks: [agora-net]
     depends_on:
-      minio:
-        condition: service_healthy
+      - minio
     entrypoint: >
       /bin/sh -c "
+        sleep 10;
         mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-agora} ${MINIO_ROOT_PASSWORD:-agora_secret};
         mc mb --ignore-existing local/agora-bronze;
         mc mb --ignore-existing local/agora-silver;
@@ -118,11 +113,6 @@ services:
       - "9003:9003"
     volumes:
       - questdb-data:/root/.questdb
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9003/"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   postgres:
     image: postgres:16-alpine
