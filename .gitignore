@@ -1,0 +1,53 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.next/
+
+# Environment & Secrets
+.env
+.env.local
+secrets/
+
+# Docker
+docker-compose.override.yml
+
+# dbt
+transform/dbt/target/
+transform/dbt/dbt_packages/
+transform/dbt/logs/
+
+# Dagster
+orchestration/dagster/storage/
+orchestration/dagster/logs/
+
+# Data
+data/
+*.parquet
+*.csv
+warehouse/
+minio-data/
+questdb-data/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
