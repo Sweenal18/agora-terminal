@@ -153,6 +153,25 @@ services:
       BRONZE_BATCH_SIZE: "500"
     restart: on-failure
 
+  ohlcv-processor:
+    build:
+      context: ../..
+      dockerfile: processing/bytewax/Dockerfile
+    container_name: agora-ohlcv-processor
+    networks: [agora-net]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      questdb:
+        condition: service_started
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_CRYPTO_TICKS: crypto.ticks.raw
+      QUESTDB_HOST: questdb
+      QUESTDB_ILP_PORT: "9009"
+      OHLCV_WINDOW_SECONDS: "60"
+    restart: on-failure
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: agora-kafka-ui
