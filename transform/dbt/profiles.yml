@@ -1,0 +1,7 @@
+﻿agora:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "/app/transform/dbt/agora.duckdb"
+      threads: 4

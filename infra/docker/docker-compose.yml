@@ -172,6 +172,16 @@ services:
       OHLCV_WINDOW_SECONDS: "60"
     restart: on-failure
 
+  dbt:
+    build:
+      context: ../..
+      dockerfile: transform/dbt/Dockerfile
+    container_name: agora-dbt
+    volumes:
+      - ../../transform/dbt:/app/transform/dbt
+      - ../../polygon_bronze.jsonl:/app/polygon_bronze.jsonl
+    profiles: [dbt]
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: agora-kafka-ui
