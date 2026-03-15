@@ -133,6 +133,26 @@ services:
       timeout: 5s
       retries: 5
 
+  bronze-writer:
+    build:
+      context: ../..
+      dockerfile: storage/iceberg/Dockerfile
+    container_name: agora-bronze-writer
+    networks: [agora-net]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_CRYPTO_TICKS: crypto.ticks.raw
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-agora}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-agora_secret}
+      BRONZE_BATCH_SIZE: "500"
+    restart: on-failure
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: agora-kafka-ui
