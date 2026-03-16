@@ -182,6 +182,26 @@ services:
       - ../../polygon_bronze.jsonl:/app/polygon_bronze.jsonl
     profiles: [dbt]
 
+  api:
+    build:
+      context: ../..
+      dockerfile: api/Dockerfile
+    container_name: agora-api
+    networks: [agora-net]
+    ports:
+      - "8000:8000"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      questdb:
+        condition: service_started
+    environment:
+      QUESTDB_HOST: questdb
+      QUESTDB_PG_PORT: "8812"
+      DUCKDB_PATH: /app/transform/dbt/agora.duckdb
+      FRED_API_KEY: ${FRED_API_KEY:-}
+    restart: on-failure
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: agora-kafka-ui
