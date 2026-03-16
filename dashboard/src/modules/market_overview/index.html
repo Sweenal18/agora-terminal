@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGORA — Financial Intelligence Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #050810;
+    --bg-panel: #080D1A;
+    --bg-card: #0C1221;
+    --bg-hover: #111828;
+    --border: #1A2540;
+    --border-bright: #243050;
+    --teal: #00D4AA;
+    --teal-dim: #00856A;
+    --teal-glow: rgba(0, 212, 170, 0.15);
+    --blue-accent: #0EA5E9;
+    --green: #00E676;
+    --red: #FF3D5A;
+    --amber: #FFB300;
+    --text-primary: #E2E8F4;
+    --text-secondary: #7A8BAD;
+    --text-dim: #3D4F6E;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Chakra Petch', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── TOP NAV ─── */
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(5, 8, 16, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+  }
+
+  .nav-left { display: flex; align-items: center; gap: 32px; }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--teal);
+    text-shadow: 0 0 20px rgba(0,212,170,0.5);
+  }
+
+  .logo span { color: var(--text-secondary); font-weight: 300; }
+
+  .nav-links { display: flex; gap: 4px; }
+
+  .nav-link {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+  }
+
+  .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+  .nav-link.active {
+    color: var(--teal);
+    background: var(--teal-glow);
+    border-color: var(--teal-dim);
+  }
+
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+  }
+
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 2s infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,230,118,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(0,230,118,0); }
+  }
+
+  .clock {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── TICKER TAPE ─── */
+  .ticker-wrap {
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .ticker-wrap::before, .ticker-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 60px;
+    z-index: 2;
+  }
+  .ticker-wrap::before { left: 0; background: linear-gradient(90deg, var(--bg-panel), transparent); }
+  .ticker-wrap::after { right: 0; background: linear-gradient(-90deg, var(--bg-panel), transparent); }
+
+  .ticker-track {
+    display: flex;
+    gap: 0;
+    animation: ticker-scroll 60s linear infinite;
+    white-space: nowrap;
+  }
+
+  @keyframes ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 20px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    border-right: 1px solid var(--border);
+  }
+
+  .ticker-sym {
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+  }
+
+  .ticker-price { color: var(--text-secondary); }
+  .ticker-chg.pos { color: var(--green); }
+  .ticker-chg.neg { color: var(--red); }
+
+  /* ─── MAIN LAYOUT ─── */
+  .main {
+    position: relative;
+    z-index: 1;
+    padding: 20px 24px;
+    display: grid;
+    gap: 16px;
+  }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ─── MARKET STATUS BAR ─── */
+  .market-status-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .market-status-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .market-status-card:hover { border-color: var(--border-bright); }
+
+  .market-status-card.open { border-left: 3px solid var(--green); }
+  .market-status-card.closed { border-left: 3px solid var(--text-dim); }
+  .market-status-card.pre { border-left: 3px solid var(--amber); }
+
+  .market-name {
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-primary);
+  }
+
+  .market-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+  }
+
+  .market-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  .badge-open { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+  .badge-closed { background: rgba(61,79,110,0.2); color: var(--text-dim); border: 1px solid var(--border); }
+  .badge-pre { background: rgba(255,179,0,0.12); color: var(--amber); border: 1px solid rgba(255,179,0,0.25); }
+
+  /* ─── BIG INDEX ROW ─── */
+  .indices-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  .index-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .index-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s;
+  }
+
+  .index-card:hover { border-color: var(--border-bright); background: var(--bg-hover); }
+  .index-card.pos::after { background: var(--green); }
+  .index-card.neg::after { background: var(--red); }
+
+  .index-name {
+    font-family: var(--display);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .index-value {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .index-change {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .index-change.pos { color: var(--green); }
+  .index-change.neg { color: var(--red); }
+
+  .index-sparkline {
+    margin-top: 10px;
+    height: 32px;
+  }
+
+  /* Flash animation for price updates */
+  @keyframes flash-green {
+    0% { background: rgba(0,230,118,0.15); }
+    100% { background: transparent; }
+  }
+  @keyframes flash-red {
+    0% { background: rgba(255,61,90,0.15); }
+    100% { background: transparent; }
+  }
+  .flash-g { animation: flash-green 0.6s ease-out; }
+  .flash-r { animation: flash-red 0.6s ease-out; }
+
+  /* ─── MIDDLE ROW: Heatmap + Macro ─── */
+  .middle-row {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ─── HEATMAP ─── */
+  .heatmap-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 3px;
+    margin-top: 12px;
+  }
+
+  .heat-cell {
+    aspect-ratio: 1.2;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s, filter 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .heat-cell:hover { transform: scale(1.08); filter: brightness(1.3); z-index: 2; }
+
+  .heat-cell .cell-sym {
+    font-family: var(--mono);
+    font-size: 7.5px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.02em;
+  }
+
+  .heat-cell .cell-pct {
+    font-family: var(--mono);
+    font-size: 7px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 1px;
+  }
+
+  /* ─── MACRO PANEL ─── */
+  .macro-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .macro-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .macro-item:last-child { border-bottom: none; }
+
+  .macro-label {
+    font-family: var(--body);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .macro-sublabel {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  .macro-value {
+    text-align: right;
+  }
+
+  .macro-num {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .macro-chg {
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  .macro-chg.pos { color: var(--green); }
+  .macro-chg.neg { color: var(--red); }
+  .macro-chg.neu { color: var(--text-dim); }
+
+  /* ─── BOTTOM ROW ─── */
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 380px;
+    gap: 16px;
+  }
+
+  /* ─── CRYPTO PANEL ─── */
+  .asset-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .asset-row {
+    display: grid;
+    grid-template-columns: 32px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .asset-row:hover { background: var(--bg-hover); }
+
+  .asset-rank {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  .asset-info { min-width: 0; }
+
+  .asset-sym {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .asset-name {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .asset-price {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-align: right;
+  }
+
+  .asset-chg {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    text-align: right;
+    padding: 3px 7px;
+    border-radius: 3px;
+    min-width: 64px;
+  }
+
+  .asset-chg.pos { color: var(--green); background: rgba(0,230,118,0.08); }
+  .asset-chg.neg { color: var(--red); background: rgba(255,61,90,0.08); }
+
+  /* ─── AI SIGNALS PANEL ─── */
+  .signals-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  .signal-item {
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .signal-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .signal-item.alert::before { background: var(--amber); }
+  .signal-item.opportunity::before { background: var(--teal); }
+  .signal-item.macro::before { background: var(--blue-accent); }
+
+  .signal-item:hover { border-color: var(--border-bright); background: var(--bg-hover); }
+
+  .signal-tag {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .signal-tag.alert { color: var(--amber); }
+  .signal-tag.opportunity { color: var(--teal); }
+  .signal-tag.macro { color: var(--blue-accent); }
+
+  .signal-text {
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .signal-time {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 5px;
+  }
+
+  /* ─── SEARCH BAR ─── */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .search-bar:focus-within {
+    border-color: var(--teal-dim);
+    box-shadow: 0 0 0 3px var(--teal-glow);
+  }
+
+  .search-icon { color: var(--text-dim); font-size: 14px; flex-shrink: 0; }
+
+  .search-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .search-input::placeholder { color: var(--text-dim); }
+
+  .search-hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  /* ─── FOREX ROW ─── */
+  .forex-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+
+  .forex-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .forex-card:hover { border-color: var(--border-bright); }
+
+  .forex-pair {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  .forex-rate {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .forex-chg {
+    font-family: var(--mono);
+    font-size: 10px;
+    margin-top: 4px;
+  }
+
+  .forex-chg.pos { color: var(--green); }
+  .forex-chg.neg { color: var(--red); }
+
+  /* ─── FEAR & GREED ─── */
+  .fg-gauge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 12px;
+  }
+
+  .fg-arc {
+    position: relative;
+    width: 140px;
+    height: 75px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .fg-label {
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .fg-score {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--amber);
+    line-height: 1;
+  }
+
+  /* ─── VOLUME BAR ─── */
+  .vol-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .vol-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--teal-dim), var(--teal));
+    transition: width 1s ease;
+  }
+
+  /* ─── TOOLTIP ─── */
+  .tooltip {
+    position: absolute;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-bright);
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-primary);
+    pointer-events: none;
+    z-index: 1000;
+    display: none;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+
+  /* ─── STAGGER ANIMATIONS ─── */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadeInUp 0.4s ease forwards;
+  }
+
+  @keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .delay-1 { animation-delay: 0.05s; }
+  .delay-2 { animation-delay: 0.1s; }
+  .delay-3 { animation-delay: 0.15s; }
+  .delay-4 { animation-delay: 0.2s; }
+  .delay-5 { animation-delay: 0.25s; }
+  .delay-6 { animation-delay: 0.3s; }
+
+  /* ─── SCROLLBAR ─── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 1400px) {
+    .indices-grid { grid-template-columns: repeat(3, 1fr); }
+    .forex-grid { grid-template-columns: repeat(3, 1fr); }
+    .bottom-row { grid-template-columns: 1fr 1fr; }
+    .bottom-row .signals-panel { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-left">
+    <div class="logo">AGORA<span> TERMINAL</span></div>
+    <div class="nav-links">
+      <div class="nav-link active">Overview</div>
+      <div class="nav-link">Charts</div>
+      <div class="nav-link">Screener</div>
+      <div class="nav-link">Research</div>
+      <div class="nav-link">AI Query</div>
+      <div class="nav-link">Portfolio</div>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      LIVE DATA
+    </div>
+    <div class="clock" id="clock">--:--:-- UTC</div>
+  </div>
+</nav>
+
+<!-- TICKER TAPE -->
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SEARCH -->
+  <div class="search-bar fade-in">
+    <span class="search-icon">⌕</span>
+    <input class="search-input" type="text" placeholder="Search any ticker, company, index, or ask a question...">
+    <span class="search-hint">⌘K</span>
+  </div>
+
+  <!-- MARKET STATUS -->
+  <div class="fade-in delay-1">
+    <div class="section-header">
+      <span class="section-title">Market Status</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="market-status-bar">
+      <div class="market-status-card open">
+        <div>
+          <div class="market-name">NYSE / NASDAQ</div>
+          <div class="market-time">New York · 09:30 – 16:00 ET</div>
+        </div>
+        <span class="market-badge badge-open">Open</span>
+      </div>
+      <div class="market-status-card open">
+        <div>
+          <div class="market-name">CRYPTO</div>
+          <div class="market-time">24/7 Global Markets</div>
+        </div>
+        <span class="market-badge badge-open">Live</span>
+      </div>
+      <div class="market-status-card pre">
+        <div>
+          <div class="market-name">LSE · LONDON</div>
+          <div class="market-time">Opens in 3h 22m</div>
+        </div>
+        <span class="market-badge badge-pre">Pre-Open</span>
+      </div>
+      <div class="market-status-card closed">
+        <div>
+          <div class="market-name">TSE · TOKYO</div>
+          <div class="market-time">Closed · Opens 00:00 UTC</div>
+        </div>
+        <span class="market-badge badge-closed">Closed</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAJOR INDICES -->
+  <div class="fade-in delay-2">
+    <div class="section-header">
+      <span class="section-title">Major Indices</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="indices-grid" id="indicesGrid"></div>
+  </div>
+
+  <!-- MIDDLE ROW -->
+  <div class="middle-row fade-in delay-3">
+
+    <!-- HEATMAP -->
+    <div class="heatmap-panel">
+      <div class="section-header">
+        <span class="section-title">S&P 500 Sector Heatmap</span>
+        <div class="section-line"></div>
+      </div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+    </div>
+
+    <!-- MACRO -->
+    <div class="macro-panel">
+      <div class="section-header">
+        <span class="section-title">Macro Pulse</span>
+        <div class="section-line"></div>
+      </div>
+      <div id="macroItems"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="bottom-row">
+
+    <!-- CRYPTO -->
+    <div class="asset-panel fade-in delay-4">
+      <div class="section-header">
+        <span class="section-title">Crypto</span>
+        <div class="section-line"></div>
+      </div>
+      <div id="cryptoList"></div>
+    </div>
+
+    <!-- FOREX -->
+    <div class="fade-in delay-4">
+      <div class="section-header">
+        <span class="section-title">Forex</span>
+        <div class="section-line"></div>
+      </div>
+      <div id="forexGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;"></div>
+
+      <div class="section-header" style="margin-top:8px">
+        <span class="section-title">Commodities</span>
+        <div class="section-line"></div>
+      </div>
+      <div id="commoditiesGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;"></div>
+    </div>
+
+    <!-- AI SIGNALS -->
+    <div class="signals-panel fade-in delay-5">
+      <div class="section-header">
+        <span class="section-title">AI Market Signals</span>
+        <div class="section-line"></div>
+      </div>
+      <div id="signalsList"></div>
+
+      <!-- Fear & Greed -->
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px;">
+        <div class="section-header">
+          <span class="section-title">Fear & Greed Index</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="fg-gauge">
+          <div class="fg-score">62</div>
+          <div class="fg-label" style="color:var(--amber)">Greed</div>
+          <div style="width:100%;margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:4px;">
+              <span>FEAR</span><span>NEUTRAL</span><span>GREED</span>
+            </div>
+            <div class="vol-bar" style="height:8px;">
+              <div class="vol-fill" style="width:62%;background:linear-gradient(90deg,var(--red),var(--amber));"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOREX RATES ROW -->
+  <div class="fade-in delay-6">
+    <div class="section-header">
+      <span class="section-title">Currency Pairs</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="forex-grid" id="forexBig"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────
+// ─── CONFIG ──────────────────────────────────────────────────
+const API_BASE = 'http://localhost:8000';
+
+// ─── DATA (will be populated from API) ───────────────────────
+let INDICES = [
+  { sym:'S&P 500', val:0, chg:0, pct:0, pos:true },
+  { sym:'NASDAQ', val:0, chg:0, pct:0, pos:true },
+  { sym:'DOW JONES', val:0, chg:0, pct:0, pos:true },
+  { sym:'RUSSELL 2K', val:0, chg:0, pct:0, pos:false },
+  { sym:'VIX', val:0, chg:0, pct:0, pos:false },
+  { sym:'NIKKEI 225', val:0, chg:0, pct:0, pos:true },
+];
+
+let CRYPTO = [
+  { rank:1, sym:'BTC', name:'Bitcoin',   price:0, chg:0, pos:true },
+  { rank:2, sym:'ETH', name:'Ethereum',  price:0, chg:0, pos:true },
+  { rank:3, sym:'SOL', name:'Solana',    price:0, chg:0, pos:true },
+];
+
+const MACRO = [
+  { label:'Fed Funds Rate', sub:'Target Range',       val:'--',  chg:'--', dir:'neu' },
+  { label:'10Y Treasury',   sub:'US Benchmark Yield', val:'--',  chg:'--', dir:'neu' },
+  { label:'CPI Inflation',  sub:'Year-over-Year',     val:'--',  chg:'--', dir:'neu' },
+  { label:'Unemployment',   sub:'Latest Reading',     val:'--',  chg:'--', dir:'neu' },
+  { label:'VIX',            sub:'Volatility Index',   val:'--',  chg:'--', dir:'neu' },
+];
+
+const FOREX_BIG = [
+  { pair:'EUR/USD', rate:'--', chg:'--', pos:false },
+  { pair:'GBP/USD', rate:'--', chg:'--', pos:true },
+  { pair:'USD/JPY', rate:'--', chg:'--', pos:false },
+  { pair:'USD/CHF', rate:'--', chg:'--', pos:false },
+  { pair:'AUD/USD', rate:'--', chg:'--', pos:true },
+  { pair:'USD/CAD', rate:'--', chg:'--', pos:false },
+];
+
+const FOREX_SMALL = FOREX_BIG.slice(0, 4);
+
+const COMMODITIES = [
+  { pair:'GOLD',    rate:'--', chg:'--', pos:true },
+  { pair:'WTI OIL', rate:'--', chg:'--', pos:false },
+  { pair:'SILVER',  rate:'--', chg:'--', pos:true },
+  { pair:'NAT GAS', rate:'--', chg:'--', pos:false },
+];
+
+const SIGNALS = [
+  { type:'macro', tag:'Live', text:'Market data streaming from Binance WebSocket via Kafka pipeline', time:'Live' },
+  { type:'opportunity', tag:'Data', text:'S&P 500 equity data powered by Polygon.io — 50 tickers, 500 days of history', time:'Updated' },
+  { type:'macro', tag:'Stack', text:'Bronze Iceberg lakehouse → dbt Silver models → FastAPI → Dashboard', time:'Phase 1' },
+];
+
+const SP500_TICKERS = [
+  {s:'AAPL',p:0},{s:'MSFT',p:0},{s:'NVDA',p:0},{s:'AMZN',p:0},{s:'META',p:0},
+  {s:'GOOGL',p:0},{s:'BRK',p:0},{s:'LLY',p:0},{s:'JPM',p:0},{s:'V',p:0},
+  {s:'XOM',p:0},{s:'UNH',p:0},{s:'JNJ',p:0},{s:'PG',p:0},{s:'MA',p:0},
+  {s:'AVGO',p:0},{s:'HD',p:0},{s:'MRK',p:0},{s:'COST',p:0},{s:'CVX',p:0},
+  {s:'ABBV',p:0},{s:'WMT',p:0},{s:'BAC',p:0},{s:'CSCO',p:0},{s:'CRM',p:0},
+  {s:'MCD',p:0},{s:'PEP',p:0},{s:'TMO',p:0},{s:'ACN',p:0},{s:'LIN',p:0},
+  {s:'AMD',p:0},{s:'INTC',p:0},{s:'QCOM',p:0},{s:'TXN',p:0},{s:'AMAT',p:0},
+  {s:'NFLX',p:0},{s:'TSLA',p:0},{s:'ADBE',p:0},{s:'NOW',p:0},{s:'INTU',p:0},
+  {s:'DE',p:0},{s:'CAT',p:0},{s:'GE',p:0},{s:'HON',p:0},{s:'UPS',p:0},
+  {s:'GS',p:0},{s:'MS',p:0},{s:'BLK',p:0},{s:'SPGI',p:0},{s:'CB',p:0},
+  {s:'PFE',p:0},{s:'BMY',p:0},{s:'GILD',p:0},{s:'AMGN',p:0},{s:'BSX',p:0},
+];
+
+// ─── API FUNCTIONS ────────────────────────────────────────────
+
+async function fetchCryptoPrices() {
+  try {
+    const res = await fetch(`${API_BASE}/api/crypto/prices`);
+    const json = await res.json();
+    if (json.data && json.data.length > 0) {
+      json.data.forEach(d => {
+        const sym = d.symbol.replace('USDT','');
+        const idx = CRYPTO.findIndex(c => c.sym === sym);
+        if (idx !== -1) {
+          const prev = CRYPTO[idx].price || d.price;
+          const chg = prev ? ((d.price - prev) / prev * 100) : 0;
+          CRYPTO[idx].price = d.price;
+          CRYPTO[idx].chg   = parseFloat(chg.toFixed(2));
+          CRYPTO[idx].pos   = chg >= 0;
+        }
+      });
+      renderCrypto();
+      updateTickerCrypto();
+    }
+  } catch(e) {
+    console.error('Crypto API error:', e);
+  }
+}
+
+async function fetchMacroPulse() {
+  try {
+    const res = await fetch(`${API_BASE}/api/macro/pulse`);
+    const json = await res.json();
+    if (json.data) {
+      const d = json.data;
+      const macroMap = [
+        { key:'fed_rate',     label:'Fed Funds Rate', sub:'Target Range' },
+        { key:'treasury_10y', label:'10Y Treasury',   sub:'US Benchmark Yield' },
+        { key:'cpi',          label:'CPI Inflation',  sub:'Year-over-Year' },
+        { key:'unemployment', label:'Unemployment',   sub:'Latest Reading' },
+        { key:'vix',          label:'VIX',            sub:'Volatility Index' },
+      ];
+      macroMap.forEach((m, i) => {
+        if (d[m.key] && d[m.key].value) {
+          MACRO[i].val = d[m.key].value;
+          MACRO[i].chg = d[m.key].date || '--';
+        }
+      });
+      renderMacro();
+    }
+  } catch(e) {
+    console.error('Macro API error:', e);
+  }
+}
+
+async function fetchEquityHeatmap() {
+  try {
+    const tickers = ['AAPL','MSFT','NVDA','AMZN','META','GOOGL','JPM','V',
+                     'XOM','UNH','JNJ','PG','MA','AVGO','HD','MRK','COST',
+                     'CVX','ABBV','BAC','CSCO','AMD','NFLX','ADBE','QCOM'];
+    const promises = tickers.slice(0, 10).map(t =>
+      fetch(`${API_BASE}/api/equity/ohlcv/${t}?limit=2`)
+        .then(r => r.json())
+        .catch(() => null)
+    );
+    const results = await Promise.all(promises);
+    results.forEach((res, i) => {
+      if (res && res.data && res.data.length >= 2) {
+        const latest = res.data[0];
+        const prev   = res.data[1];
+        const pct    = ((latest.close - prev.close) / prev.close * 100);
+        const idx    = SP500_TICKERS.findIndex(t => t.s === tickers[i]);
+        if (idx !== -1) {
+          SP500_TICKERS[idx].p = parseFloat(pct.toFixed(2));
+        }
+      }
+    });
+    renderHeatmap();
+  } catch(e) {
+    console.error('Equity heatmap error:', e);
+  }
+}
+
+function updateTickerCrypto() {
+  renderTicker();
+}
+
+// ─── HELPERS ───────────────────────────────────────────────
+
+function fmt(n) {
+  if (!n || n === 0) return '--';
+  if(n >= 1000) return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(n < 1) return n.toFixed(4);
+  return n.toFixed(2);
+}
+
+function colorForPct(pct) {
+  const abs = Math.abs(pct);
+  if(pct > 0) {
+    if(abs > 3) return '#006644';
+    if(abs > 1.5) return '#005535';
+    if(abs > 0.5) return '#00442A';
+    return '#003322';
+  } else {
+    if(abs > 3) return '#7A1020';
+    if(abs > 1.5) return '#641018';
+    if(abs > 0.5) return '#4E0C14';
+    return '#3C0A10';
+  }
+}
+
+// ─── RENDER FUNCTIONS ──────────────────────────────────────
+
+const TICKER_DATA = [];
+
+function buildTickerData() {
+  CRYPTO.forEach(c => {
+    TICKER_DATA.push({
+      sym: c.sym,
+      price: '$' + fmt(c.price),
+      chg: (c.pos?'+':'') + c.chg + '%',
+      pos: c.pos
+    });
+  });
+}
+
+function renderTicker() {
+  const items = [...CRYPTO.map(c => ({
+    sym: c.sym,
+    price: '$' + fmt(c.price),
+    chg: (c.pos?'+':'') + c.chg + '%',
+    pos: c.pos
+  }))];
+  const doubled = [...items, ...items];
+  const html = doubled.map(t => `
+    <div class="ticker-item">
+      <span class="ticker-sym">${t.sym}</span>
+      <span class="ticker-price">${t.price}</span>
+      <span class="ticker-chg ${t.pos?'pos':'neg'}">${t.chg}</span>
+    </div>
+  `).join('');
+  document.getElementById('tickerTrack').innerHTML = html;
+}
+
+function renderIndices() {
+  const sparkPaths = [
+    "M0,28 C10,24 20,18 30,20 C40,22 50,14 60,10 C70,6 80,12 90,8 C100,4 110,8 120,6",
+    "M0,20 C10,22 20,26 30,24 C40,22 50,18 60,14 C70,10 80,12 90,8 C100,6 110,10 120,4",
+    "M0,16 C10,18 20,14 30,16 C40,18 50,12 60,10 C70,8 80,10 90,8 C100,6 110,8 120,6",
+    "M0,12 C10,14 20,18 30,22 C40,26 50,24 60,28 C70,26 80,28 90,26 C100,24 110,26 120,28",
+    "M0,24 C10,20 20,16 30,20 C40,24 50,20 60,16 C70,12 80,8 90,10 C100,12 110,8 120,6",
+    "M0,8 C10,10 20,12 30,10 C40,8 50,10 60,8 C70,6 80,8 90,6 C100,4 110,6 120,4",
+  ];
+  document.getElementById('indicesGrid').innerHTML = INDICES.map((idx, i) => `
+    <div class="index-card ${idx.pos?'pos':'neg'}">
+      <div class="index-name">${idx.sym}</div>
+      <div class="index-value" id="idx-${i}">${fmt(idx.val)}</div>
+      <div class="index-change ${idx.pos?'pos':'neg'}">
+        ${idx.pos?'▲':'▼'} ${Math.abs(idx.chg).toFixed(2)} (${idx.pos?'+':''}${idx.pct.toFixed(2)}%)
+      </div>
+      <div class="index-sparkline">
+        <svg width="100%" height="32" viewBox="0 0 120 32" preserveAspectRatio="none">
+          <path d="${sparkPaths[i]}" fill="none" stroke="${idx.pos?'var(--green)':'var(--red)'}" stroke-width="1.5" opacity="0.7"/>
+        </svg>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderHeatmap() {
+  document.getElementById('heatmapGrid').innerHTML = SP500_TICKERS.map(t => {
+    const bg = colorForPct(t.p);
+    return `
+      <div class="heat-cell" style="background:${bg}" title="${t.s}: ${t.p>0?'+':''}${t.p}%">
+        <span class="cell-sym">${t.s}</span>
+        <span class="cell-pct">${t.p>0?'+':''}${t.p}%</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderMacro() {
+  document.getElementById('macroItems').innerHTML = MACRO.map(m => `
+    <div class="macro-item">
+      <div>
+        <div class="macro-label">${m.label}</div>
+        <div class="macro-sublabel">${m.sub}</div>
+      </div>
+      <div class="macro-value">
+        <div class="macro-num">${m.val}</div>
+        <div class="macro-chg ${m.dir}">${m.chg}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCrypto() {
+  document.getElementById('cryptoList').innerHTML = CRYPTO.map(c => `
+    <div class="asset-row">
+      <div class="asset-rank">${c.rank}</div>
+      <div class="asset-info">
+        <div class="asset-sym">${c.sym}</div>
+        <div class="asset-name">${c.name}</div>
+      </div>
+      <div class="asset-price">$${fmt(c.price)}</div>
+      <div class="asset-chg ${c.pos?'pos':'neg'}">${c.pos?'+':''}${c.chg}%</div>
+    </div>
+  `).join('');
+}
+
+function renderForex() {
+  const smallHtml = FOREX_SMALL.map(f => `
+    <div class="forex-card">
+      <div class="forex-pair">${f.pair}</div>
+      <div class="forex-rate">${f.rate}</div>
+      <div class="forex-chg ${f.pos?'pos':'neg'}">${f.chg}</div>
+    </div>
+  `).join('');
+  document.getElementById('forexGrid').innerHTML = smallHtml;
+
+  const commHtml = COMMODITIES.map(c => `
+    <div class="forex-card">
+      <div class="forex-pair">${c.pair}</div>
+      <div class="forex-rate">${c.rate}</div>
+      <div class="forex-chg ${c.pos?'pos':'neg'}">${c.chg}</div>
+    </div>
+  `).join('');
+  document.getElementById('commoditiesGrid').innerHTML = commHtml;
+}
+
+function renderForexBig() {
+  document.getElementById('forexBig').innerHTML = FOREX_BIG.map(f => `
+    <div class="forex-card">
+      <div class="forex-pair">${f.pair}</div>
+      <div class="forex-rate">${f.rate}</div>
+      <div class="forex-chg ${f.pos?'pos':'neg'}">${f.chg}</div>
+    </div>
+  `).join('');
+}
+
+function renderSignals() {
+  document.getElementById('signalsList').innerHTML = SIGNALS.map(s => `
+    <div class="signal-item ${s.type}">
+      <div class="signal-tag ${s.type}">${s.tag}</div>
+      <div class="signal-text">${s.text}</div>
+      <div class="signal-time">${s.time}</div>
+    </div>
+  `).join('');
+}
+
+// ─── CLOCK ─────────────────────────────────────────────────
+
+function updateClock() {
+  const now = new Date();
+  const utc = now.toUTCString().split(' ')[4];
+  document.getElementById('clock').textContent = utc + ' UTC';
+}
+
+// ─── INIT ───────────────────────────────────────────────────
+
+async function init() {
+  renderTicker();
+  renderIndices();
+  renderHeatmap();
+  renderMacro();
+  renderCrypto();
+  renderForex();
+  renderForexBig();
+  renderSignals();
+  updateClock();
+
+  // Fetch live data
+  await fetchCryptoPrices();
+  await fetchMacroPulse();
+  fetchEquityHeatmap();
+
+  // Live updates
+  setInterval(updateClock, 1000);
+  setInterval(fetchCryptoPrices, 5000);
+  setInterval(fetchMacroPulse, 60000);
+  setInterval(fetchEquityHeatmap, 300000);
+}
+
+init();
+
+
+</script>
+</body>
+</html>
