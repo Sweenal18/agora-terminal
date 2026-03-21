@@ -3,7 +3,6 @@ import logging
 import os
 import socket
 from datetime import timedelta, timezone, datetime
-from typing import Optional
 
 import bytewax.operators as op
 import bytewax.operators.window as win

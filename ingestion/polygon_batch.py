@@ -13,7 +13,6 @@ import logging
 import os
 import time
 from datetime import date, datetime, timezone
-from typing import Optional
 
 import requests
 
@@ -109,7 +108,7 @@ def run():
         log.error("POLYGON_API_KEY not set — check your .env file")
         return
 
-    log.info(f"Starting Polygon batch ingestion")
+    log.info("Starting Polygon batch ingestion")
     log.info(f"Tickers: {len(SP500_TICKERS)} | Range: {FROM_DATE} to {TO_DATE}")
     log.info(f"Output: {OUTPUT_FILE}")
 

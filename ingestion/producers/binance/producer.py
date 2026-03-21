@@ -30,15 +30,15 @@ from ingestion.producers.binance.config import (
 )
 from ingestion.producers.binance.schemas import TickMessage
 
-# ─── Logging ──────────────────────────────────────────────────────────────────
+# --- Logging ------------------------------------------------------------------
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL),
-    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    format="%(asctime)s [%(levelname)s] %(name)s � %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
 log = logging.getLogger("binance.producer")
 
-# ─── Kafka setup ──────────────────────────────────────────────────────────────
+# --- Kafka setup --------------------------------------------------------------
 
 def create_kafka_topic(bootstrap_servers: str, topic: str) -> None:
     """Create the Kafka topic if it does not already exist."""
@@ -63,7 +63,7 @@ def delivery_report(err, msg) -> None:
         log.error(f"Delivery failed for {msg.key()}: {err}")
 
 
-# ─── WebSocket handlers ───────────────────────────────────────────────────────
+# --- WebSocket handlers -------------------------------------------------------
 
 class BinanceProducer:
     def __init__(self):
@@ -83,7 +83,7 @@ class BinanceProducer:
         signal.signal(signal.SIGTERM, self._shutdown)
 
     def _shutdown(self, signum, frame):
-        log.info("Shutdown signal received — flushing Kafka producer...")
+        log.info("Shutdown signal received � flushing Kafka producer...")
         self.running = False
         self.producer.flush(timeout=10)
         log.info(f"Shutdown complete. Total ticks published: {self.tick_count}")
@@ -93,7 +93,7 @@ class BinanceProducer:
         """Handle incoming WebSocket message from Binance."""
         try:
             data = json.loads(raw)
-            stream = data.get("stream", "")
+            __stream = data.get("stream", "")
             payload = data.get("data", {})
 
             # Trade stream event
@@ -134,13 +134,13 @@ class BinanceProducer:
         log.error(f"WebSocket error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg) -> None:
-        log.warning(f"WebSocket closed: {close_status_code} — {close_msg}")
+        log.warning(f"WebSocket closed: {close_status_code} � {close_msg}")
 
     def on_open(self, ws) -> None:
         log.info(f"WebSocket connected. Streaming: {[s.upper() for s in SYMBOLS]}")
 
     def run(self) -> None:
-        # Build combined stream URL — e.g. btcusdt@trade/ethusdt@trade/solusdt@trade
+        # Build combined stream URL � e.g. btcusdt@trade/ethusdt@trade/solusdt@trade
         streams = "/".join(f"{s}@trade" for s in SYMBOLS)
         url = f"{BINANCE_WS_BASE}?streams={streams}"
 
@@ -165,5 +165,5 @@ class BinanceProducer:
 
 
 if __name__ == "__main__":
-    log.info("Starting Agora Terminal — Binance Producer")
+    log.info("Starting Agora Terminal � Binance Producer")
     BinanceProducer().run()
