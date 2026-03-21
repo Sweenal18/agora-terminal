@@ -1,4 +1,4 @@
-﻿"""
+"""
 Equity routes — serves S&P 500 OHLCV data from DuckDB Silver layer
 """
 import os

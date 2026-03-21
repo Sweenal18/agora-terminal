@@ -1,4 +1,4 @@
-﻿"""
+"""
 Macro routes - serves FRED economic data and live market data
 """
 import os

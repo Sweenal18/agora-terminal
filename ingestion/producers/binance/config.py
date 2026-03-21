@@ -1,4 +1,4 @@
-﻿"""
+"""
 Configuration for the Binance WebSocket producer.
 All values can be overridden via environment variables.
 """

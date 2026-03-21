@@ -1,4 +1,4 @@
-﻿"""
+"""
 Data models for Binance tick messages.
 """
 from dataclasses import dataclass

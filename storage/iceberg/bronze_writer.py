@@ -1,4 +1,4 @@
-﻿"""
+"""
 Bronze Iceberg Writer
 ---------------------
 Reads raw ticks from Kafka topic: crypto.ticks.raw

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Polygon.io Batch Ingester
 --------------------------
 Pulls daily OHLCV history for S&P 500 tickers from Polygon.io free tier

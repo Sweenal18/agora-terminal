@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Verify all local infrastructure services are up and reachable.
 Run after: docker compose -f infra/docker/docker-compose.yml up -d

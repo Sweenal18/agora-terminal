@@ -1,4 +1,4 @@
-﻿"""
+"""
 Crypto routes — serves live prices and OHLCV candles from QuestDB
 """
 import os

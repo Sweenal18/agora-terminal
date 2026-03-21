@@ -1,4 +1,4 @@
-﻿"""
+"""
 Agora Terminal — FastAPI Backend
 Serves real-time financial data to the dashboard
 """

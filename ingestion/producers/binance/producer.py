@@ -1,4 +1,4 @@
-﻿"""
+"""
 Binance WebSocket Producer
 --------------------------
 Connects to Binance live trade stream for BTC, ETH, SOL.
