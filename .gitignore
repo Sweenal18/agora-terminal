@@ -51,3 +51,5 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+.env
+infra/docker/.env
