@@ -200,6 +200,7 @@ services:
       QUESTDB_PG_PORT: "8812"
       DUCKDB_PATH: /app/transform/dbt/agora.duckdb
       FRED_API_KEY: ${FRED_API_KEY:-}
+      POLYGON_API_KEY: ${POLYGON_API_KEY:-}
     restart: on-failure
 
   kafka-ui:

@@ -1100,6 +1100,27 @@ function updateTickerCrypto() {
   renderTicker();
 }
 
+async function fetchIndices() {
+  try {
+    const res = await fetch(`${API_BASE}/api/equity/indices`);
+    const json = await res.json();
+    if (json.data && json.data.length > 0) {
+      json.data.forEach((d, i) => {
+        if (i < INDICES.length) {
+          INDICES[i].val = d.val;
+          INDICES[i].chg = d.chg;
+          INDICES[i].pct = d.pct;
+          INDICES[i].pos = d.pos;
+          INDICES[i].sym = d.sym;
+        }
+      });
+      renderIndices();
+    }
+  } catch(e) {
+    console.error('Indices API error:', e);
+  }
+}
+
 // ─── HELPERS ───────────────────────────────────────────────
 
 function fmt(n) {
@@ -1288,6 +1309,8 @@ async function init() {
   await fetchCryptoPrices();
   await fetchMacroPulse();
   fetchEquityHeatmap();
+  await fetchIndices();
+  setInterval(fetchIndices, 60000);  // refresh every minute
 
   // Live updates
   setInterval(updateClock, 1000);

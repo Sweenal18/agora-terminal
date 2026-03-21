@@ -3,6 +3,7 @@ Equity routes — serves S&P 500 OHLCV data from DuckDB Silver layer
 """
 import os
 import logging
+import requests
 from fastapi import APIRouter
 import duckdb
 
@@ -58,5 +59,59 @@ def get_symbols():
         log.error(f"DuckDB error: {e}")
         return {"symbols": [], "error": str(e)}
 
+# Major indices mapping — Polygon tickers
+INDICES = {
+    "I:SPX":  {"sym": "S&P 500",    "pos": True},
+    "I:NDX":  {"sym": "NASDAQ",     "pos": True},
+    "I:DJI":  {"sym": "DOW JONES",  "pos": True},
+    "I:RUT":  {"sym": "RUSSELL 2K", "pos": True},
+    "I:VIX":  {"sym": "VIX",        "pos": False},
+}
 
+@router.get("/indices")
+def get_indices():
+    """Get major indices via Yahoo Finance HTTP API."""
+    import time
 
+    tickers = {
+        "%5EGSPC": "S&P 500",
+        "%5EIXIC":  "NASDAQ",
+        "%5EDJI":   "DOW JONES",
+        "%5ERUT":   "RUSSELL 2K",
+        "%5EVIX":   "VIX",
+        "%5EN225":  "NIKKEI 225",
+    }
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/json",
+        "Referer": "https://finance.yahoo.com/",
+    }
+
+    results = []
+    for symbol, name in tickers.items():
+        for attempt in range(3):
+            try:
+                url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=5d"
+                resp = requests.get(url, headers=headers, timeout=15)
+                data = resp.json()
+                meta = data["chart"]["result"][0]["meta"]
+                val  = float(meta["regularMarketPrice"])
+                prev = float(meta.get("chartPreviousClose") or meta.get("previousClose") or val)
+                chg  = val - prev
+                pct  = (chg / prev) * 100 if prev else 0
+                results.append({
+                    "sym": name,
+                    "val": round(val, 2),
+                    "chg": round(chg, 2),
+                    "pct": round(pct, 2),
+                    "pos": chg >= 0,
+                })
+                time.sleep(0.5)
+                break
+            except Exception as e:
+                log.error(f"Yahoo error for {symbol} attempt {attempt+1}: {e}")
+                time.sleep(2)
+                continue
+
+    return {"data": results, "source": "yahoo_finance"}
