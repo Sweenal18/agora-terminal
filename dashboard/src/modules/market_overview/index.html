@@ -251,24 +251,7 @@
       <span class="section-title">Market Status</span>
       <div class="section-line"></div>
     </div>
-    <div class="market-status-bar">
-      <div class="market-status-card open">
-        <div><div class="market-name">NYSE / NASDAQ</div><div class="market-time">New York · 09:30 - 16:00 ET</div></div>
-        <span class="market-badge badge-open">Open</span>
-      </div>
-      <div class="market-status-card open">
-        <div><div class="market-name">CRYPTO</div><div class="market-time">24/7 Global Markets</div></div>
-        <span class="market-badge badge-open">Live</span>
-      </div>
-      <div class="market-status-card pre">
-        <div><div class="market-name">LSE · LONDON</div><div class="market-time">Opens in 3h 22m</div></div>
-        <span class="market-badge badge-pre">Pre-Open</span>
-      </div>
-      <div class="market-status-card closed">
-        <div><div class="market-name">TSE · TOKYO</div><div class="market-time">Closed · Opens 00:00 UTC</div></div>
-        <span class="market-badge badge-closed">Closed</span>
-      </div>
-    </div>
+    <div class="market-status-bar" id="marketStatusBar"></div>
   </div>
 
   <div class="fade-in delay-2">
@@ -330,14 +313,14 @@
           <div class="section-line"></div>
         </div>
         <div class="fg-gauge">
-          <div class="fg-score">62</div>
-          <div class="fg-label" style="color:var(--amber)">Greed</div>
+          <div class="fg-score" id="fgScore">--</div>
+          <div class="fg-label" id="fgLabel" style="color:var(--amber)">--</div>
           <div style="width:100%;margin-top:12px;">
             <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text-dim);margin-bottom:4px;">
               <span>FEAR</span><span>NEUTRAL</span><span>GREED</span>
             </div>
             <div class="vol-bar" style="height:8px;">
-              <div class="vol-fill" style="width:62%;background:linear-gradient(90deg,var(--red),var(--amber));"></div>
+              <div class="vol-fill" id="fgFill" style="width:50%;background:linear-gradient(90deg,var(--red),var(--amber));"></div>
             </div>
           </div>
         </div>
@@ -689,6 +672,158 @@ function updateClock() {
   const now = new Date();
   const utc = now.toUTCString().split(' ')[4];
   document.getElementById('clock').textContent = utc + ' UTC';
+  renderMarketStatus();
+}
+
+function getMarketStatus() {
+  const now = new Date();
+  const utcH = now.getUTCHours();
+  const utcM = now.getUTCMinutes();
+  const utcDay = now.getUTCDay(); // 0=Sun, 6=Sat
+  const utcMins = utcH * 60 + utcM;
+  const isWeekday = utcDay >= 1 && utcDay <= 5;
+
+  // NYSE/NASDAQ: 14:30-21:00 UTC Mon-Fri
+  const nyseOpen = 14 * 60 + 30;
+  const nyseClose = 21 * 60;
+  const nysePreOpen = 14 * 60;
+
+  let nyseStatus = 'closed';
+  let nyseTime = 'Closed';
+  if (isWeekday) {
+    if (utcMins >= nyseOpen && utcMins < nyseClose) {
+      nyseStatus = 'open';
+      const minsLeft = nyseClose - utcMins;
+      nyseTime = 'Closes in ' + Math.floor(minsLeft/60) + 'h ' + (minsLeft%60) + 'm';
+    } else if (utcMins >= nysePreOpen && utcMins < nyseOpen) {
+      nyseStatus = 'pre';
+      const minsLeft = nyseOpen - utcMins;
+      nyseTime = 'Opens in ' + minsLeft + 'm';
+    } else if (utcMins < nysePreOpen) {
+      const minsLeft = nysePreOpen - utcMins;
+      nyseTime = 'Pre-open in ' + Math.floor(minsLeft/60) + 'h ' + (minsLeft%60) + 'm';
+    } else {
+      nyseTime = 'Opens tomorrow 09:30 ET';
+    }
+  } else {
+    nyseTime = 'Opens Monday 09:30 ET';
+  }
+
+  // LSE: 08:00-16:30 UTC Mon-Fri
+  const lseOpen = 8 * 60;
+  const lseClose = 16 * 60 + 30;
+  let lseStatus = 'closed';
+  let lseTime = 'Closed';
+  if (isWeekday) {
+    if (utcMins >= lseOpen && utcMins < lseClose) {
+      lseStatus = 'open';
+      const minsLeft = lseClose - utcMins;
+      lseTime = 'Closes in ' + Math.floor(minsLeft/60) + 'h ' + (minsLeft%60) + 'm';
+    } else if (utcMins < lseOpen) {
+      const minsLeft = lseOpen - utcMins;
+      lseStatus = 'pre';
+      lseTime = 'Opens in ' + Math.floor(minsLeft/60) + 'h ' + (minsLeft%60) + 'm';
+    } else {
+      lseTime = 'Opens tomorrow 08:00 UTC';
+    }
+  } else {
+    lseTime = 'Opens Monday 08:00 UTC';
+  }
+
+  // TSE: 00:00-06:00 UTC Mon-Fri (09:00-15:00 JST)
+  const tseOpen = 0;
+  const tseClose = 6 * 60;
+  let tseStatus = 'closed';
+  let tseTime = 'Closed';
+  if (isWeekday) {
+    if (utcMins >= tseOpen && utcMins < tseClose) {
+      tseStatus = 'open';
+      const minsLeft = tseClose - utcMins;
+      tseTime = 'Closes in ' + Math.floor(minsLeft/60) + 'h ' + (minsLeft%60) + 'm';
+    } else {
+      tseTime = 'Opens tomorrow 09:00 JST';
+    }
+  } else if (utcDay === 1) {
+    tseTime = 'Opens Monday 09:00 JST';
+  } else {
+    tseTime = 'Opens Monday 09:00 JST';
+  }
+
+  return { nyseStatus, nyseTime, lseStatus, lseTime, tseStatus, tseTime };
+}
+
+function renderMarketStatus() {
+  const s = getMarketStatus();
+  const badgeLabel = { open: 'Open', pre: 'Pre-Open', closed: 'Closed' };
+  document.getElementById('marketStatusBar').innerHTML = `
+    <div class="market-status-card ${s.nyseStatus}">
+      <div><div class="market-name">NYSE / NASDAQ</div><div class="market-time">New York &middot; ${s.nyseTime}</div></div>
+      <span class="market-badge badge-${s.nyseStatus}">${badgeLabel[s.nyseStatus]}</span>
+    </div>
+    <div class="market-status-card open">
+      <div><div class="market-name">CRYPTO</div><div class="market-time">24/7 Global Markets</div></div>
+      <span class="market-badge badge-open">Live</span>
+    </div>
+    <div class="market-status-card ${s.lseStatus}">
+      <div><div class="market-name">LSE &middot; LONDON</div><div class="market-time">${s.lseTime}</div></div>
+      <span class="market-badge badge-${s.lseStatus}">${badgeLabel[s.lseStatus]}</span>
+    </div>
+    <div class="market-status-card ${s.tseStatus}">
+      <div><div class="market-name">TSE &middot; TOKYO</div><div class="market-time">${s.tseTime}</div></div>
+      <span class="market-badge badge-${s.tseStatus}">${badgeLabel[s.tseStatus]}</span>
+    </div>
+  `;
+}
+
+async function fetchFearGreed() {
+  try {
+    const res = await fetch(`${API_BASE}/api/macro/fear-greed`);
+    const json = await res.json();
+    if (json.score !== null) {
+      document.getElementById('fgScore').textContent = json.score.toFixed(0);
+      const label = document.getElementById('fgLabel');
+      label.textContent = json.rating;
+      const score = json.score;
+      let color = 'var(--amber)';
+      if (score <= 25) color = 'var(--red)';
+      else if (score >= 75) color = 'var(--green)';
+      label.style.color = color;
+      document.getElementById('fgScore').style.color = color;
+      const fill = document.getElementById('fgFill');
+      if (fill) fill.style.width = score + '%';
+    }
+  } catch(e) { console.warn('Fear & Greed fetch failed', e); }
+}
+
+async function fetchCryptoChange() {
+  const tickers = { BTC: 'BTC-USD', ETH: 'ETH-USD', SOL: 'SOL-USD' };
+  for (const [sym, ticker] of Object.entries(tickers)) {
+    try {
+      const res = await fetch(`${API_BASE}/api/equity/indices`);
+      break;
+    } catch(e) {}
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/macro/forex`);
+  } catch(e) {}
+  // Fetch crypto change from Yahoo Finance via a dedicated call
+  try {
+    const cryptoTickers = ['BTC-USD', 'ETH-USD', 'SOL-USD'];
+    const syms = ['BTC', 'ETH', 'SOL'];
+    for (let i = 0; i < cryptoTickers.length; i++) {
+      const res = await fetch(`${API_BASE}/api/macro/crypto-change?ticker=${cryptoTickers[i]}`);
+      const json = await res.json();
+      if (json.change_pct !== null) {
+        const idx = CRYPTO.findIndex(c => c.sym === syms[i]);
+        if (idx !== -1) {
+          CRYPTO[idx].chg = parseFloat(json.change_pct.toFixed(2));
+          CRYPTO[idx].pos = json.change_pct >= 0;
+        }
+      }
+    }
+    renderCrypto();
+    renderTicker();
+  } catch(e) { console.warn('Crypto change fetch failed', e); }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────
@@ -718,6 +853,8 @@ async function init() {
   setInterval(fetchIndices, 60000);
   setInterval(fetchForex, 60000);
   setInterval(fetchCommodities, 60000);
+  setInterval(fetchFearGreed, 300000);
+  fetchFearGreed();
 }
 
 init();

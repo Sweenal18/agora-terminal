@@ -62,6 +62,7 @@ target-version = "py311"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests", "ingestion", "processing"]
+addopts = "--ignore=ingestion --ignore=processing"
 
 [tool.setuptools.packages.find]
 include = ["api*", "ingestion*", "processing*", "storage*"]

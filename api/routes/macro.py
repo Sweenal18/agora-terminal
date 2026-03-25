@@ -136,3 +136,46 @@ def get_commodities():
         result[commodity] = fetch_yf_quote(ticker)
         time.sleep(0.5)
     return {"data": result, "source": "yahoo_finance"}
+
+@router.get("/fear-greed")
+def get_fear_greed():
+    """Live Fear & Greed Index from CNN."""
+    url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://edition.cnn.com/markets/fear-and-greed",
+    }
+    for attempt in range(3):
+        try:
+            resp = requests.get(url, headers=headers, timeout=10)
+            data = resp.json()
+            fg = data.get("fear_and_greed", {})
+            return {
+                "score": round(fg.get("score", 0), 1),
+                "rating": fg.get("rating", "unknown").replace("_", " ").title(),
+                "previous_close": round(fg.get("previous_close", 0), 1),
+                "previous_1_week": round(fg.get("previous_1_week", 0), 1),
+                "previous_1_month": round(fg.get("previous_1_month", 0), 1),
+                "source": "cnn",
+            }
+        except Exception as e:
+            log.warning(f"Fear & Greed attempt {attempt+1} failed: {e}")
+            time.sleep(0.5)
+    return {"score": None, "rating": "unavailable", "source": "cnn", "error": "fetch_failed"}
+
+CRYPTO_TICKERS = {
+    "BTC-USD": "BTC-USD",
+    "ETH-USD": "ETH-USD",
+    "SOL-USD": "SOL-USD",
+}
+
+@router.get("/crypto-change")
+def get_crypto_change(ticker: str = "BTC-USD"):
+    """Get 24h change % for a crypto via Yahoo Finance."""
+    result = fetch_yf_quote(ticker)
+    return {
+        "ticker": ticker,
+        "price": result.get("price"),
+        "change_pct": result.get("change_pct"),
+        "source": "yahoo_finance",
+    }
