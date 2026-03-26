@@ -1,17 +1,24 @@
 """
 Macro routes - serves FRED economic data and live market data
+Writes all fetched data to QuestDB for historical storage
 """
 import os
 import logging
 import time
+from datetime import datetime, timezone
 from fastapi import APIRouter
 import requests
+import psycopg2
+import psycopg2.extras
 
 log = logging.getLogger("api.macro")
 router = APIRouter()
 
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 FRED_BASE    = "https://api.stlouisfed.org/fred/series/observations"
+
+QUESTDB_HOST = os.getenv("QUESTDB_HOST", "questdb")
+QUESTDB_PORT = int(os.getenv("QUESTDB_PG_PORT", "8812"))
 
 MACRO_SERIES = {
     "fed_rate":       "FEDFUNDS",
@@ -43,10 +50,85 @@ COMMODITIES_TICKERS = {
     "WHEAT":  "ZW=F",
 }
 
+INDEX_TICKERS = {
+    "SPX":    "%5EGSPC",
+    "NASDAQ": "%5EIXIC",
+    "DOW":    "%5EDJI",
+    "RUT":    "%5ERUT",
+    "VIX":    "%5EVIX",
+    "NKY":    "%5EN225",
+}
+
 YF_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json",
 }
+
+def get_questdb():
+    return psycopg2.connect(
+        host=QUESTDB_HOST,
+        port=QUESTDB_PORT,
+        user="admin",
+        password="quest",
+        database="qdb",
+    )
+
+def write_to_questdb(table: str, rows: list):
+    """Write a list of dicts to a QuestDB table."""
+    if not rows:
+        return
+    try:
+        conn = get_questdb()
+        cur = conn.cursor()
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000000Z")
+        for row in rows:
+            if table == "forex_rates":
+                cur.execute(
+                    "INSERT INTO forex_rates (symbol, price, change_pct, timestamp) VALUES (%s, %s, %s, %s)",
+                    (row["symbol"], row["price"], row["change_pct"], now)
+                )
+            elif table == "commodity_prices":
+                cur.execute(
+                    "INSERT INTO commodity_prices (symbol, price, change_pct, timestamp) VALUES (%s, %s, %s, %s)",
+                    (row["symbol"], row["price"], row["change_pct"], now)
+                )
+            elif table == "index_prices":
+                cur.execute(
+                    "INSERT INTO index_prices (symbol, price, change, change_pct, timestamp) VALUES (%s, %s, %s, %s, %s)",
+                    (row["symbol"], row["price"], row["change"], row["change_pct"], now)
+                )
+        conn.commit()
+        conn.close()
+        log.info(f"Wrote {len(rows)} rows to {table}")
+    except Exception as e:
+        log.error(f"QuestDB write error for {table}: {e}")
+
+def get_change_pct_from_history(table: str, symbols: list) -> dict:
+    """Calculate 24h change % from QuestDB historical data."""
+    try:
+        conn = get_questdb()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT symbol, price FROM " + table + " WHERE timestamp <= dateadd('h', -24, now()) LATEST ON timestamp PARTITION BY symbol"
+        )
+        prev_prices = {r["symbol"]: r["price"] for r in cur.fetchall()}
+        cur.execute(
+            "SELECT symbol, price FROM " + table + " LATEST ON timestamp PARTITION BY symbol"
+        )
+        curr_prices = {r["symbol"]: r["price"] for r in cur.fetchall()}
+        conn.close()
+        result = {}
+        for sym in symbols:
+            curr = curr_prices.get(sym)
+            prev = prev_prices.get(sym)
+            if curr and prev and prev != 0:
+                result[sym] = round((curr - prev) / prev * 100, 4)
+            else:
+                result[sym] = 0.0
+        return result
+    except Exception as e:
+        log.error(f"History change_pct error for {table}: {e}")
+        return {sym: 0.0 for sym in symbols}
 
 def fetch_fred(series_id: str, limit: int = 1) -> dict:
     """Fetch latest observation from FRED."""
@@ -70,7 +152,7 @@ def fetch_fred(series_id: str, limit: int = 1) -> dict:
 def fetch_yf_quote(ticker: str) -> dict:
     """Fetch a single Yahoo Finance quote with retries."""
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
-    params = {"interval": "1d", "range": "1d"}
+    params = {"interval": "1d", "range": "2d"}
     for attempt in range(3):
         try:
             resp = requests.get(url, headers=YF_HEADERS, params=params, timeout=10)
@@ -78,17 +160,19 @@ def fetch_yf_quote(ticker: str) -> dict:
             meta = data["chart"]["result"][0]["meta"]
             price = meta.get("regularMarketPrice") or meta.get("previousClose")
             prev  = meta.get("previousClose", price)
+            change = round(price - prev, 4) if prev else 0
             change_pct = round(((price - prev) / prev) * 100, 4) if prev else 0
             return {
                 "price":      round(price, 4),
                 "prev_close": round(prev, 4),
+                "change":     change,
                 "change_pct": change_pct,
                 "currency":   meta.get("currency", "USD"),
             }
         except Exception as e:
             log.warning(f"YF attempt {attempt+1} failed for {ticker}: {e}")
             time.sleep(0.5)
-    return {"price": None, "prev_close": None, "change_pct": None, "error": "fetch_failed"}
+    return {"price": None, "prev_close": None, "change": None, "change_pct": None, "error": "fetch_failed"}
 
 @router.get("/pulse")
 def get_macro_pulse():
@@ -121,20 +205,65 @@ def get_macro_pulse():
 
 @router.get("/forex")
 def get_forex():
-    """Live forex rates via Yahoo Finance."""
+    """Live forex rates via Yahoo Finance - writes to QuestDB, calculates change from history."""
     result = {}
+    rows_to_store = []
     for pair, ticker in FOREX_TICKERS.items():
-        result[pair] = fetch_yf_quote(ticker)
+        quote = fetch_yf_quote(ticker)
+        result[pair] = quote
+        if quote.get("price"):
+            rows_to_store.append({
+                "symbol":     pair,
+                "price":      quote["price"],
+                "change_pct": quote["change_pct"] or 0,
+            })
         time.sleep(0.5)
+    write_to_questdb("forex_rates", rows_to_store)
+    change_pcts = get_change_pct_from_history("forex_rates", list(FOREX_TICKERS.keys()))
+    for pair in result:
+        if result[pair].get("price"):
+            result[pair]["change_pct"] = change_pcts.get(pair, 0.0)
     return {"data": result, "source": "yahoo_finance"}
 
 @router.get("/commodities")
 def get_commodities():
-    """Live commodity prices via Yahoo Finance."""
+    """Live commodity prices via Yahoo Finance - writes to QuestDB, calculates change from history."""
     result = {}
+    rows_to_store = []
     for commodity, ticker in COMMODITIES_TICKERS.items():
-        result[commodity] = fetch_yf_quote(ticker)
+        quote = fetch_yf_quote(ticker)
+        result[commodity] = quote
+        if quote.get("price"):
+            rows_to_store.append({
+                "symbol":     commodity,
+                "price":      quote["price"],
+                "change_pct": quote["change_pct"] or 0,
+            })
         time.sleep(0.5)
+    write_to_questdb("commodity_prices", rows_to_store)
+    change_pcts = get_change_pct_from_history("commodity_prices", list(COMMODITIES_TICKERS.keys()))
+    for commodity in result:
+        if result[commodity].get("price"):
+            result[commodity]["change_pct"] = change_pcts.get(commodity, 0.0)
+    return {"data": result, "source": "yahoo_finance"}
+
+@router.get("/indices")
+def get_indices():
+    """Live index prices via Yahoo Finance - writes to QuestDB."""
+    result = {}
+    rows_to_store = []
+    for symbol, ticker in INDEX_TICKERS.items():
+        quote = fetch_yf_quote(ticker)
+        result[symbol] = quote
+        if quote.get("price"):
+            rows_to_store.append({
+                "symbol":     symbol,
+                "price":      quote["price"],
+                "change":     quote["change"] or 0,
+                "change_pct": quote["change_pct"] or 0,
+            })
+        time.sleep(0.5)
+    write_to_questdb("index_prices", rows_to_store)
     return {"data": result, "source": "yahoo_finance"}
 
 @router.get("/fear-greed")
