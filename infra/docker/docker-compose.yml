@@ -108,9 +108,10 @@ services:
     container_name: agora-questdb
     networks: [agora-net]
     ports:
-      - "9009:9009"
-      - "8812:8812"
-      - "9003:9003"
+    - "9009:9009"
+    - "8812:8812"
+    - "9003:9003"
+    - "9002:9000"
     volumes:
       - questdb-data:/root/.questdb
 

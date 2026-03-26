@@ -1,21 +1,17 @@
 """
-Crypto routes — serves live prices and OHLCV candles from QuestDB
+Crypto routes - serves live prices and OHLCV candles from QuestDB
 """
 import os
 import logging
 from fastapi import APIRouter
 import psycopg2
 import psycopg2.extras
-
 log = logging.getLogger("api.crypto")
 router = APIRouter()
-
 QUESTDB_HOST = os.getenv("QUESTDB_HOST", "questdb")
 QUESTDB_PORT = int(os.getenv("QUESTDB_PG_PORT", "8812"))
 QUESTDB_USER = os.getenv("QUESTDB_USER", "admin")
 QUESTDB_PASS = os.getenv("QUESTDB_PASS", "quest")
-
-
 def get_questdb():
     return psycopg2.connect(
         host=QUESTDB_HOST,
@@ -24,34 +20,40 @@ def get_questdb():
         password=QUESTDB_PASS,
         database="qdb",
     )
-
-
 @router.get("/prices")
 def get_latest_prices():
-    """Get latest price for BTC, ETH, SOL from QuestDB."""
+    """Get latest price + 24h change % for BTC, ETH, SOL from QuestDB."""
     try:
         conn = get_questdb()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""
-            SELECT symbol, close as price, volume, trade_count,
-                   open, high, low, timestamp
+            SELECT symbol, close as price, volume, trade_count, open, high, low, timestamp
             FROM ohlcv_1m
             LATEST ON timestamp PARTITION BY symbol
         """)
-        rows = cur.fetchall()
+        current = {r["symbol"]: dict(r) for r in cur.fetchall()}
+        cur.execute("""
+            SELECT symbol, close as price_24h
+            FROM ohlcv_1m
+            WHERE timestamp <= dateadd('h', -24, now())
+            LATEST ON timestamp PARTITION BY symbol
+        """)
+        prev = {r["symbol"]: r["price_24h"] for r in cur.fetchall()}
         conn.close()
         data = []
-        for r in rows:
-            row = dict(r)
+        for symbol, row in current.items():
             if row.get("timestamp"):
                 row["timestamp"] = str(row["timestamp"])
+            price_24h = prev.get(symbol)
+            if price_24h and price_24h != 0:
+                row["change_pct"] = round((row["price"] - price_24h) / price_24h * 100, 2)
+            else:
+                row["change_pct"] = 0.0
             data.append(row)
         return {"data": data, "source": "questdb"}
     except Exception as e:
         log.error(f"QuestDB error: {e}")
         return {"data": [], "error": str(e)}
-
-
 @router.get("/ohlcv/{symbol}")
 def get_ohlcv(symbol: str, limit: int = 60):
     """Get last N 1-minute candles for a symbol."""

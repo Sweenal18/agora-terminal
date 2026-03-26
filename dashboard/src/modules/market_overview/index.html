@@ -339,7 +339,7 @@
 </div>
 
 <script>
-const API_BASE = 'http://140.245.250.232:8000';
+const API_BASE = 'http://localhost:8000';
 
 let INDICES = [
   { sym:'S&P 500',    val:0, chg:0, pct:0, pos:true },
@@ -413,8 +413,7 @@ async function fetchCryptoPrices() {
         const sym = d.symbol.replace('USDT','');
         const idx = CRYPTO.findIndex(c => c.sym === sym);
         if (idx !== -1) {
-          const prev = CRYPTO[idx].price || d.price;
-          const chg = prev ? ((d.price - prev) / prev * 100) : 0;
+          const chg = d.change_pct || 0;
           CRYPTO[idx].price = d.price;
           CRYPTO[idx].chg   = parseFloat(chg.toFixed(2));
           CRYPTO[idx].pos   = chg >= 0;
