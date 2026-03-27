@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGORA — Asset Screener</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #050810; --bg-panel: #080D1A; --bg-card: #0C1221; --bg-hover: #111828;
+    --border: #1A2540; --border-bright: #243050;
+    --teal: #00D4AA; --teal-dim: #00856A; --teal-glow: rgba(0,212,170,0.15);
+    --green: #00E676; --red: #FF3D5A; --amber: #FFB300;
+    --text-primary: #E2E8F4; --text-secondary: #7A8BAD; --text-dim: #3D4F6E;
+    --mono: 'JetBrains Mono', monospace; --display: 'Chakra Petch', sans-serif; --body: 'IBM Plex Sans', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--body); min-height:100vh; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(rgba(0,212,170,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,170,0.03) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+  .nav {
+    position:sticky; top:0; z-index:100; background:rgba(5,8,16,0.95);
+    backdrop-filter:blur(20px); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:52px;
+  }
+  .logo { font-family:var(--display); font-size:18px; font-weight:700; letter-spacing:0.15em; color:var(--teal); text-shadow:0 0 20px rgba(0,212,170,0.5); }
+  .logo span { color:var(--text-secondary); font-weight:300; }
+  .nav-links { display:flex; gap:4px; }
+  .nav-link { font-family:var(--display); font-size:11px; font-weight:500; letter-spacing:0.08em; color:var(--text-secondary); padding:6px 14px; border-radius:4px; cursor:pointer; text-decoration:none; transition:all 0.2s; border:1px solid transparent; }
+  .nav-link:hover { color:var(--text-primary); background:var(--bg-card); }
+  .nav-link.active { color:var(--teal); background:var(--teal-glow); border-color:var(--teal-dim); }
+  .live-badge { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; color:var(--green); }
+  .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+  .main { padding:20px 24px; position:relative; z-index:1; }
+
+  .screener-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .screener-title { font-family:var(--display); font-size:16px; font-weight:600; letter-spacing:0.1em; color:var(--text-primary); }
+  .result-count { font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+
+  .filters-panel {
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:8px;
+    padding:16px; margin-bottom:16px; display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px;
+  }
+  .filter-group { display:flex; flex-direction:column; gap:6px; }
+  .filter-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; }
+  .filter-input, .filter-select {
+    background:var(--bg-card); border:1px solid var(--border); border-radius:4px;
+    padding:7px 10px; font-family:var(--mono); font-size:12px; color:var(--text-primary);
+    outline:none; transition:border-color 0.2s; width:100%;
+  }
+  .filter-input:focus, .filter-select:focus { border-color:var(--teal-dim); }
+  .filter-select option { background:var(--bg-card); }
+
+  .filter-actions { display:flex; gap:8px; align-items:flex-end; }
+  .btn-screen {
+    background:var(--teal-glow); border:1px solid var(--teal-dim); border-radius:4px;
+    padding:8px 20px; font-family:var(--display); font-size:11px; font-weight:600;
+    letter-spacing:0.1em; color:var(--teal); cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  }
+  .btn-screen:hover { background:var(--teal); color:var(--bg-deep); }
+  .btn-reset {
+    background:transparent; border:1px solid var(--border); border-radius:4px;
+    padding:8px 14px; font-family:var(--mono); font-size:11px; color:var(--text-secondary);
+    cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  }
+  .btn-reset:hover { border-color:var(--border-bright); color:var(--text-primary); }
+
+  .results-table { width:100%; border-collapse:collapse; }
+  .table-wrap { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .results-table th {
+    font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:0.1em;
+    color:var(--text-dim); text-transform:uppercase; padding:10px 14px;
+    text-align:left; border-bottom:1px solid var(--border); white-space:nowrap;
+    cursor:pointer; user-select:none; transition:color 0.2s;
+  }
+  .results-table th:hover { color:var(--text-secondary); }
+  .results-table th.sorted { color:var(--teal); }
+  .results-table td {
+    font-family:var(--mono); font-size:12px; color:var(--text-primary);
+    padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .results-table tr:last-child td { border-bottom:none; }
+  .results-table tr:hover td { background:var(--bg-hover); }
+  .results-table td:first-child { font-weight:700; color:var(--teal); cursor:pointer; }
+  .results-table td:first-child:hover { text-decoration:underline; }
+  .pos { color:var(--green) !important; }
+  .neg { color:var(--red) !important; }
+  .neu { color:var(--text-secondary) !important; }
+  .sector-badge {
+    display:inline-block; padding:2px 8px; border-radius:3px;
+    font-size:10px; background:var(--bg-card); border:1px solid var(--border);
+    color:var(--text-secondary);
+  }
+  .loading-row td { text-align:center; padding:40px; color:var(--text-dim); font-size:13px; }
+
+  .sort-indicator { margin-left:4px; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div style="display:flex;align-items:center;gap:32px;">
+    <div class="logo">AGORA <span>TERMINAL</span></div>
+    <div class="nav-links">
+      <a href="../market_overview/index.html" class="nav-link">OVERVIEW</a>
+      <a href="../chart/index.html" class="nav-link">CHARTS</a>
+      <a href="#" class="nav-link active">SCREENER</a>
+      <a href="#" class="nav-link">RESEARCH</a>
+      <a href="#" class="nav-link">AI QUERY</a>
+      <a href="#" class="nav-link">PORTFOLIO</a>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="screener-header">
+    <div class="screener-title">ASSET SCREENER</div>
+    <div class="result-count" id="resultCount">Loading...</div>
+  </div>
+
+  <div class="filters-panel">
+    <div class="filter-group">
+      <div class="filter-label">Sector</div>
+      <select class="filter-select" id="fSector">
+        <option value="">All Sectors</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Min Market Cap ($B)</div>
+      <input class="filter-input" id="fMinCap" type="number" placeholder="e.g. 100">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Max Market Cap ($B)</div>
+      <input class="filter-input" id="fMaxCap" type="number" placeholder="e.g. 1000">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Min ROE (%)</div>
+      <input class="filter-input" id="fMinRoe" type="number" placeholder="e.g. 15">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Max EV/EBITDA</div>
+      <input class="filter-input" id="fMaxEv" type="number" placeholder="e.g. 20">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Min Beta</div>
+      <input class="filter-input" id="fMinBeta" type="number" step="0.1" placeholder="e.g. 0.5">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Max Beta</div>
+      <input class="filter-input" id="fMaxBeta" type="number" step="0.1" placeholder="e.g. 1.5">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Min Div Yield (%)</div>
+      <input class="filter-input" id="fMinDiv" type="number" step="0.1" placeholder="e.g. 2">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Sort By</div>
+      <select class="filter-select" id="fSortBy">
+        <option value="market_cap">Market Cap</option>
+        <option value="price">Price</option>
+        <option value="change_1d_pct">1D Change %</option>
+        <option value="change_1w_pct">1W Change %</option>
+        <option value="change_1m_pct">1M Change %</option>
+        <option value="roe">ROE</option>
+        <option value="ev_to_ebitda">EV/EBITDA</option>
+        <option value="volume">Volume</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Sort Direction</div>
+      <select class="filter-select" id="fSortDir">
+        <option value="desc">Descending</option>
+        <option value="asc">Ascending</option>
+      </select>
+    </div>
+    <div class="filter-group filter-actions">
+      <button class="btn-screen" onclick="runScreen()">▶ SCREEN</button>
+      <button class="btn-reset" onclick="resetFilters()">RESET</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th>Company</th>
+          <th>Sector</th>
+          <th>Price</th>
+          <th>1D %</th>
+          <th>1W %</th>
+          <th>1M %</th>
+          <th>Mkt Cap</th>
+          <th>Beta</th>
+          <th>ROE</th>
+          <th>EV/EBITDA</th>
+          <th>P/B</th>
+          <th>Div Yield</th>
+          <th>52W High</th>
+          <th>52W Low</th>
+          <th>vs MA50</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody">
+        <tr class="loading-row"><td colspan="16">Loading results...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8000';
+
+function fmt(n, decimals=2) {
+  if (n === null || n === undefined) return '--';
+  return parseFloat(n).toFixed(decimals);
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined) return '--';
+  const v = parseFloat(n).toFixed(2);
+  return (n >= 0 ? '+' : '') + v + '%';
+}
+
+function fmtCap(n) {
+  if (!n) return '--';
+  if (n >= 1000) return '$' + (n/1000).toFixed(1) + 'T';
+  return '$' + n.toFixed(0) + 'B';
+}
+
+function pctClass(n) {
+  if (n === null || n === undefined) return 'neu';
+  return n >= 0 ? 'pos' : 'neg';
+}
+
+async function loadSectors() {
+  try {
+    const res = await fetch(`${API_BASE}/api/screener/sectors`);
+    const json = await res.json();
+    const sel = document.getElementById('fSector');
+    json.sectors.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
+    });
+  } catch(e) { console.warn('Sectors load failed', e); }
+}
+
+async function runScreen() {
+  document.getElementById('resultsBody').innerHTML = '<tr class="loading-row"><td colspan="16">Screening...</td></tr>';
+  const params = new URLSearchParams();
+  const sector = document.getElementById('fSector').value;
+  const minCap = document.getElementById('fMinCap').value;
+  const maxCap = document.getElementById('fMaxCap').value;
+  const minRoe = document.getElementById('fMinRoe').value;
+  const maxEv  = document.getElementById('fMaxEv').value;
+  const minBeta = document.getElementById('fMinBeta').value;
+  const maxBeta = document.getElementById('fMaxBeta').value;
+  const minDiv = document.getElementById('fMinDiv').value;
+  const sortBy = document.getElementById('fSortBy').value;
+  const sortDir = document.getElementById('fSortDir').value;
+
+  if (sector)  params.append('sector', sector);
+  if (minCap)  params.append('min_market_cap', minCap);
+  if (maxCap)  params.append('max_market_cap', maxCap);
+  if (minRoe)  params.append('min_roe', minRoe);
+  if (maxEv)   params.append('max_ev_ebitda', maxEv);
+  if (minBeta) params.append('min_beta', minBeta);
+  if (maxBeta) params.append('max_beta', maxBeta);
+  if (minDiv)  params.append('min_div_yield', minDiv);
+  params.append('sort_by', sortBy);
+  params.append('sort_dir', sortDir);
+  params.append('limit', 100);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/screener/screen?${params}`);
+    const json = await res.json();
+    renderResults(json.data || []);
+    document.getElementById('resultCount').textContent = `${json.count} results`;
+  } catch(e) {
+    document.getElementById('resultsBody').innerHTML = '<tr class="loading-row"><td colspan="16">Error loading results</td></tr>';
+    console.error(e);
+  }
+}
+
+function renderResults(data) {
+  if (data.length === 0) {
+    document.getElementById('resultsBody').innerHTML = '<tr class="loading-row"><td colspan="16">No results match your filters</td></tr>';
+    return;
+  }
+  document.getElementById('resultsBody').innerHTML = data.map(d => `
+    <tr>
+      <td onclick="openChart('${d.symbol}')">${d.symbol}</td>
+      <td style="color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;">${d.company_name || '--'}</td>
+      <td><span class="sector-badge">${d.sector || '--'}</span></td>
+      <td>$${fmt(d.price)}</td>
+      <td class="${pctClass(d.change_1d_pct)}">${fmtPct(d.change_1d_pct)}</td>
+      <td class="${pctClass(d.change_1w_pct)}">${fmtPct(d.change_1w_pct)}</td>
+      <td class="${pctClass(d.change_1m_pct)}">${fmtPct(d.change_1m_pct)}</td>
+      <td>${fmtCap(d.market_cap_b)}</td>
+      <td>${fmt(d.beta)}</td>
+      <td class="${pctClass(d.roe)}">${d.roe ? (d.roe * 100).toFixed(1) + '%' : '--'}</td>
+      <td>${fmt(d.ev_to_ebitda, 1)}</td>
+      <td>${fmt(d.price_to_book, 1)}</td>
+      <td>${d.dividend_yield ? (d.dividend_yield * 100).toFixed(2) + '%' : '--'}</td>
+      <td class="${pctClass(d.pct_from_52w_high)}">${fmtPct(d.pct_from_52w_high)}</td>
+      <td class="${pctClass(d.pct_from_52w_low)}">${fmtPct(d.pct_from_52w_low)}</td>
+      <td class="${pctClass(d.pct_from_ma50)}">${fmtPct(d.pct_from_ma50)}</td>
+    </tr>
+  `).join('');
+}
+
+function openChart(symbol) {
+  window.location.href = `../chart/index.html?symbol=${symbol}`;
+}
+
+function resetFilters() {
+  document.getElementById('fSector').value = '';
+  document.getElementById('fMinCap').value = '';
+  document.getElementById('fMaxCap').value = '';
+  document.getElementById('fMinRoe').value = '';
+  document.getElementById('fMaxEv').value = '';
+  document.getElementById('fMinBeta').value = '';
+  document.getElementById('fMaxBeta').value = '';
+  document.getElementById('fMinDiv').value = '';
+  document.getElementById('fSortBy').value = 'market_cap';
+  document.getElementById('fSortDir').value = 'desc';
+  runScreen();
+}
+
+async function init() {
+  await loadSectors();
+  await runScreen();
+}
+
+init();
+</script>
+</body>
+</html>
