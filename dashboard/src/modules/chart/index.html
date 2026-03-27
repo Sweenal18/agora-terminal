@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGORA — Chart Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root {
+    --bg-deep: #050810;
+    --bg-panel: #080D1A;
+    --bg-card: #0C1221;
+    --bg-hover: #111828;
+    --border: #1A2540;
+    --border-bright: #243050;
+    --teal: #00D4AA;
+    --teal-dim: #00856A;
+    --teal-glow: rgba(0, 212, 170, 0.15);
+    --blue-accent: #0EA5E9;
+    --green: #00E676;
+    --red: #FF3D5A;
+    --amber: #FFB300;
+    --text-primary: #E2E8F4;
+    --text-secondary: #7A8BAD;
+    --text-dim: #3D4F6E;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Chakra Petch', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(5,8,16,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 52px;
+  }
+  .logo { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: 0.15em; color: var(--teal); text-shadow: 0 0 20px rgba(0,212,170,0.5); }
+  .logo span { color: var(--text-secondary); font-weight: 300; }
+  .nav-links { display: flex; gap: 4px; }
+  .nav-link { font-family: var(--display); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: var(--text-secondary); padding: 6px 14px; border-radius: 4px; cursor: pointer; text-decoration: none; transition: all 0.2s; border: 1px solid transparent; }
+  .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+  .nav-link.active { color: var(--teal); background: var(--teal-glow); border-color: var(--teal-dim); }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--green); }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
+
+  .main { padding: 20px 24px; position: relative; z-index: 1; }
+
+  .chart-header { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  .symbol-search {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 14px; min-width: 200px;
+    transition: border-color 0.2s;
+  }
+  .symbol-search:focus-within { border-color: var(--teal-dim); box-shadow: 0 0 0 3px var(--teal-glow); }
+  .symbol-input {
+    background: transparent; border: none; outline: none;
+    font-family: var(--mono); font-size: 14px; font-weight: 600;
+    color: var(--text-primary); width: 120px; text-transform: uppercase;
+  }
+  .symbol-input::placeholder { color: var(--text-dim); font-weight: 400; }
+
+  .timeframe-btns { display: flex; gap: 4px; }
+  .tf-btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    color: var(--text-secondary); padding: 6px 12px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer; transition: all 0.2s;
+  }
+  .tf-btn:hover { color: var(--text-primary); border-color: var(--border-bright); }
+  .tf-btn.active { color: var(--teal); background: var(--teal-glow); border-color: var(--teal-dim); }
+
+  .price-display { display: flex; align-items: baseline; gap: 12px; margin-left: auto; }
+  .price-symbol { font-family: var(--display); font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.1em; }
+  .price-value { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--text-primary); }
+  .price-change { font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .price-change.pos { color: var(--green); }
+  .price-change.neg { color: var(--red); }
+
+  .chart-container {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; position: relative;
+  }
+  #chartDiv { width: 100%; height: 520px; }
+  #volumeDiv { width: 100%; height: 120px; }
+
+  .chart-info {
+    position: absolute; top: 12px; left: 12px;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    pointer-events: none; z-index: 10;
+  }
+
+  .ohlcv-bar {
+    display: flex; gap: 20px; padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px;
+  }
+  .ohlcv-item { display: flex; gap: 6px; }
+  .ohlcv-label { color: var(--text-dim); }
+  .ohlcv-val { color: var(--text-primary); }
+
+  .loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-panel); z-index: 20;
+    font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+  }
+
+  .symbol-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+    background: var(--bg-card); border: 1px solid var(--border-bright);
+    border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100;
+  }
+  .symbol-option {
+    padding: 8px 14px; font-family: var(--mono); font-size: 12px;
+    cursor: pointer; display: flex; justify-content: space-between;
+    transition: background 0.15s;
+  }
+  .symbol-option:hover { background: var(--bg-hover); }
+  .symbol-option .type { color: var(--text-dim); font-size: 10px; }
+  .search-wrap { position: relative; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div style="display:flex;align-items:center;gap:32px;">
+    <div class="logo">AGORA <span>TERMINAL</span></div>
+    <div class="nav-links">
+      <a href="../market_overview/index.html" class="nav-link">OVERVIEW</a>
+      <a href="#" class="nav-link active">CHARTS</a>
+      <a href="#" class="nav-link">SCREENER</a>
+      <a href="#" class="nav-link">RESEARCH</a>
+      <a href="#" class="nav-link">AI QUERY</a>
+      <a href="#" class="nav-link">PORTFOLIO</a>
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="chart-header">
+    <div class="search-wrap">
+      <div class="symbol-search">
+        <span style="color:var(--text-dim);font-size:13px;">⌕</span>
+        <input class="symbol-input" id="symbolInput" placeholder="BTC, AAPL..." value="BTC" autocomplete="off">
+      </div>
+      <div class="symbol-dropdown" id="symbolDropdown" style="display:none;"></div>
+    </div>
+
+    <div class="timeframe-btns" id="tfBtns">
+      <button class="tf-btn active" data-tf="1m">1M</button>
+      <button class="tf-btn" data-tf="5m">5M</button>
+      <button class="tf-btn" data-tf="1h">1H</button>
+      <button class="tf-btn" data-tf="1D">1D</button>
+    </div>
+
+    <div class="price-display">
+      <span class="price-symbol" id="priceSymbol">BTC</span>
+      <span class="price-value" id="priceValue">--</span>
+      <span class="price-change" id="priceChange">--</span>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <div class="loading" id="loadingOverlay">Loading chart data...</div>
+    <div id="chartDiv"></div>
+    <div class="ohlcv-bar" id="ohlcvBar">
+      <div class="ohlcv-item"><span class="ohlcv-label">O</span><span class="ohlcv-val" id="ohlcvO">--</span></div>
+      <div class="ohlcv-item"><span class="ohlcv-label">H</span><span class="ohlcv-val" id="ohlcvH">--</span></div>
+      <div class="ohlcv-item"><span class="ohlcv-label">L</span><span class="ohlcv-val" id="ohlcvL">--</span></div>
+      <div class="ohlcv-item"><span class="ohlcv-label">C</span><span class="ohlcv-val" id="ohlcvC">--</span></div>
+      <div class="ohlcv-item"><span class="ohlcv-label">V</span><span class="ohlcv-val" id="ohlcvV">--</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8000';
+let chart, candleSeries, volumeSeries;
+let currentSymbol = 'BTC';
+let currentTf = '1m';
+let allSymbols = [];
+
+function initChart() {
+  chart = LightweightCharts.createChart(document.getElementById('chartDiv'), {
+    width:  document.getElementById('chartDiv').offsetWidth,
+    height: 520,
+    layout: {
+      background: { color: '#080D1A' },
+      textColor:  '#7A8BAD',
+    },
+    grid: {
+      vertLines: { color: '#1A2540' },
+      horzLines: { color: '#1A2540' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#243050', labelBackgroundColor: '#0C1221' },
+      horzLine: { color: '#243050', labelBackgroundColor: '#0C1221' },
+    },
+    rightPriceScale: {
+      borderColor: '#1A2540',
+      textColor: '#7A8BAD',
+    },
+    timeScale: {
+      borderColor: '#1A2540',
+      textColor: '#7A8BAD',
+      timeVisible: true,
+      secondsVisible: false,
+    },
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor:        '#00E676',
+    downColor:      '#FF3D5A',
+    borderUpColor:  '#00E676',
+    borderDownColor:'#FF3D5A',
+    wickUpColor:    '#00E676',
+    wickDownColor:  '#FF3D5A',
+  });
+
+  volumeSeries = chart.addHistogramSeries({
+    priceFormat: { type: 'volume' },
+    priceScaleId: 'volume',
+    scaleMargins: { top: 0.85, bottom: 0 },
+  });
+
+  chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } });
+
+  chart.subscribeCrosshairMove(param => {
+    if (!param.time || !param.seriesData) return;
+    const d = param.seriesData.get(candleSeries);
+    if (d) {
+      document.getElementById('ohlcvO').textContent = fmt(d.open);
+      document.getElementById('ohlcvH').textContent = fmt(d.high);
+      document.getElementById('ohlcvL').textContent = fmt(d.low);
+      document.getElementById('ohlcvC').textContent = fmt(d.close);
+    }
+    const v = param.seriesData.get(volumeSeries);
+    if (v) document.getElementById('ohlcvV').textContent = fmtVol(v.value);
+  });
+
+  window.addEventListener('resize', () => {
+    chart.applyOptions({ width: document.getElementById('chartDiv').offsetWidth });
+  });
+}
+
+function fmt(n) {
+  if (!n) return '--';
+  if (n >= 1000) return n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (n < 1) return n.toFixed(4);
+  return n.toFixed(2);
+}
+
+function fmtVol(n) {
+  if (!n) return '--';
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(2) + 'K';
+  return n.toFixed(2);
+}
+
+async function loadChart(symbol, tf) {
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  try {
+    const limit = tf === '1D' ? 500 : tf === '1h' ? 500 : tf === '5m' ? 300 : 500;
+    const res = await fetch(`${API_BASE}/api/chart/ohlcv/${symbol}?limit=${limit}`);
+    const json = await res.json();
+    if (!json.data || json.data.length === 0) {
+      document.getElementById('loadingOverlay').textContent = 'No data available for ' + symbol;
+      return;
+    }
+    const candles = json.data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
+    const volumes = json.data.map(d => ({
+      time: d.time, value: d.volume,
+      color: d.close >= d.open ? 'rgba(0,230,118,0.4)' : 'rgba(255,61,90,0.4)'
+    }));
+    candleSeries.setData(candles);
+    volumeSeries.setData(volumes);
+    chart.timeScale().fitContent();
+    const last = candles[candles.length - 1];
+    const first = candles[0];
+    const chg = ((last.close - first.open) / first.open * 100).toFixed(2);
+    document.getElementById('priceSymbol').textContent = symbol;
+    document.getElementById('priceValue').textContent = fmt(last.close);
+    const chgEl = document.getElementById('priceChange');
+    chgEl.textContent = (chg >= 0 ? '+' : '') + chg + '%';
+    chgEl.className = 'price-change ' + (chg >= 0 ? 'pos' : 'neg');
+    document.getElementById('ohlcvO').textContent = fmt(last.open);
+    document.getElementById('ohlcvH').textContent = fmt(last.high);
+    document.getElementById('ohlcvL').textContent = fmt(last.low);
+    document.getElementById('ohlcvC').textContent = fmt(last.close);
+    document.getElementById('ohlcvV').textContent = fmtVol(last.volume);
+  } catch(e) {
+    document.getElementById('loadingOverlay').textContent = 'Error loading data: ' + e.message;
+    console.error(e);
+    return;
+  }
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+async function loadSymbols() {
+  try {
+    const res = await fetch(`${API_BASE}/api/chart/symbols`);
+    const json = await res.json();
+    allSymbols = json.symbols || [];
+  } catch(e) { console.warn('Symbols fetch failed', e); }
+}
+
+function showDropdown(filter) {
+  const dd = document.getElementById('symbolDropdown');
+  const filtered = allSymbols.filter(s => s.symbol.includes(filter.toUpperCase())).slice(0, 20);
+  if (filtered.length === 0) { dd.style.display = 'none'; return; }
+  dd.innerHTML = filtered.map(s => `
+    <div class="symbol-option" onclick="selectSymbol('${s.symbol}')">
+      <span>${s.symbol}</span>
+      <span class="type">${s.type}</span>
+    </div>
+  `).join('');
+  dd.style.display = 'block';
+}
+
+function selectSymbol(sym) {
+  currentSymbol = sym;
+  document.getElementById('symbolInput').value = sym;
+  document.getElementById('symbolDropdown').style.display = 'none';
+  loadChart(sym, currentTf);
+}
+
+document.getElementById('symbolInput').addEventListener('input', e => {
+  const val = e.target.value.trim();
+  if (val.length > 0) showDropdown(val);
+  else document.getElementById('symbolDropdown').style.display = 'none';
+});
+
+document.getElementById('symbolInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const val = e.target.value.trim().toUpperCase();
+    selectSymbol(val);
+  }
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) {
+    document.getElementById('symbolDropdown').style.display = 'none';
+  }
+});
+
+document.querySelectorAll('.tf-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTf = btn.dataset.tf;
+    loadChart(currentSymbol, currentTf);
+  });
+});
+
+async function init() {
+  initChart();
+  await loadSymbols();
+  await loadChart('BTC', '1m');
+}
+
+init();
+</script>
+</body>
+</html>
