@@ -198,6 +198,24 @@
   .delay-5 { animation-delay: 0.25s; }
   .delay-6 { animation-delay: 0.3s; }
 
+  .search-wrapper { position: relative; z-index: 9999; }
+  .search-dropdown { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: 6px; z-index: 9999; max-height: 320px; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
+  .search-dropdown.visible { display: block; }
+  .search-result { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover, .search-result.active { background: var(--bg-hover); }
+  .search-result-left { display: flex; align-items: center; gap: 12px; }
+  .search-result-sym { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--teal); min-width: 60px; }
+  .search-result-name { font-size: 12px; color: var(--text-secondary); }
+  .search-result-right { display: flex; align-items: center; gap: 12px; }
+  .search-result-price { font-family: var(--mono); font-size: 12px; color: var(--text-primary); }
+  .search-result-tag { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.1em; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; }
+  .tag-stock { background: rgba(14,165,233,0.12); color: var(--blue-accent); border: 1px solid rgba(14,165,233,0.25); }
+  .tag-crypto { background: rgba(0,212,170,0.12); color: var(--teal); border: 1px solid rgba(0,212,170,0.25); }
+  .tag-index { background: rgba(255,179,0,0.12); color: var(--amber); border: 1px solid rgba(255,179,0,0.25); }
+  .tag-forex { background: rgba(61,79,110,0.2); color: var(--text-secondary); border: 1px solid var(--border); }
+  .search-empty { padding: 16px; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg-deep); }
   ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
@@ -240,10 +258,13 @@
 
 <div class="main">
 
-  <div class="search-bar fade-in">
-    <span class="search-icon">&#8981;</span>
-    <input class="search-input" type="text" placeholder="Search any ticker, company, index, or ask a question...">
-    <span class="search-hint">&#8984;K</span>
+  <div class="search-wrapper fade-in">
+    <div class="search-bar">
+      <span class="search-icon">&#8981;</span>
+      <input class="search-input" id="globalSearch" type="text" placeholder="Search any ticker, company, index, or ask a question..." autocomplete="off">
+      <span class="search-hint">&#8984;K</span>
+    </div>
+    <div class="search-dropdown" id="searchDropdown"></div>
   </div>
 
   <div class="fade-in delay-1">
@@ -830,6 +851,84 @@ async function fetchCryptoChange() {
   } catch(e) { console.warn('Crypto change fetch failed', e); }
 }
 
+// ─── SEARCH ─────────────────────────────────────────────────────
+
+function buildSearchIndex() {
+  const index = [];
+  SP500_TICKERS.forEach(t => { index.push({ sym: t.s, name: t.s, type: 'stock', price: null }); });
+  CRYPTO.forEach(c => { index.push({ sym: c.sym, name: c.name, type: 'crypto', price: c.price }); });
+  INDICES.forEach(idx => { index.push({ sym: idx.sym, name: idx.sym, type: 'index', price: idx.val }); });
+  FOREX_BIG.forEach(f => { index.push({ sym: f.pair, name: f.pair, type: 'forex', price: f.rate }); });
+  return index;
+}
+
+function getChartSymbol(item) {
+  if (item.type === 'crypto') return item.sym + 'USDT';
+  if (item.type === 'forex') return item.sym.replace('/','');
+  if (item.type === 'index') return null;
+  return item.sym;
+}
+
+function navigateToChart(item) {
+  const sym = getChartSymbol(item);
+  if (!sym) return;
+  window.location.href = '../chart/index.html?symbol=' + sym;
+}
+
+function initSearch() {
+  const input = document.getElementById('globalSearch');
+  const dropdown = document.getElementById('searchDropdown');
+  let activeIdx = -1;
+  let results = [];
+
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); input.focus(); input.select(); }
+  });
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toUpperCase();
+    activeIdx = -1;
+    if (q.length < 1) { dropdown.classList.remove('visible'); return; }
+    const index = buildSearchIndex();
+    results = index.filter(item => item.sym.toUpperCase().includes(q) || item.name.toUpperCase().includes(q)).slice(0, 8);
+    if (results.length === 0) {
+      dropdown.innerHTML = '<div class="search-empty">No results for "' + input.value + '"</div>';
+    } else {
+      dropdown.innerHTML = results.map((r, i) => `
+        <div class="search-result" data-idx="${i}">
+          <div class="search-result-left">
+            <span class="search-result-sym">${r.sym}</span>
+            <span class="search-result-name">${r.name}</span>
+          </div>
+          <div class="search-result-right">
+            <span class="search-result-price">${r.price && r.price !== '--' ? r.price : ''}</span>
+            <span class="search-result-tag tag-${r.type}">${r.type}</span>
+          </div>
+        </div>
+      `).join('');
+      dropdown.querySelectorAll('.search-result').forEach((el, i) => {
+        el.addEventListener('click', () => navigateToChart(results[i]));
+      });
+    }
+    dropdown.classList.add('visible');
+  });
+
+  input.addEventListener('keydown', e => {
+    if (!dropdown.classList.contains('visible')) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, results.length - 1); updateActive(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); updateActive(); }
+    else if (e.key === 'Enter') { e.preventDefault(); navigateToChart(activeIdx >= 0 ? results[activeIdx] : results[0]); }
+    else if (e.key === 'Escape') { dropdown.classList.remove('visible'); input.blur(); }
+  });
+
+  function updateActive() {
+    dropdown.querySelectorAll('.search-result').forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrapper')) dropdown.classList.remove('visible');
+  });
+}
 // ─── INIT ─────────────────────────────────────────────────────
 
 async function init() {
@@ -880,6 +979,7 @@ async function init() {
     }));
   } catch(e) {}
 
+  initSearch();
   setInterval(updateClock, 1000);
   setInterval(fetchCryptoPrices, 5000);
   setInterval(fetchMacroPulse, 60000);
@@ -901,6 +1001,8 @@ async function init() {
 }
 
 init();
+document.addEventListener('DOMContentLoaded', initSearch);
+if (document.readyState !== 'loading') initSearch();
 </script>
 </body>
 </html>
