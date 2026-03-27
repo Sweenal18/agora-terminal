@@ -217,11 +217,11 @@
   <div class="nav-left">
     <div class="logo">AGORA<span> TERMINAL</span></div>
     <div class="nav-links">
-      <div class="nav-link active">Overview</div>
-      <div class="nav-link">Charts</div>
-      <div class="nav-link">Screener</div>
-      <div class="nav-link">Research</div>
-      <div class="nav-link">AI Query</div>
+      <a href="../market_overview/index.html" class="nav-link active">OVERVIEW</a>
+      <a href="../chart/index.html" class="nav-link">CHARTS</a>
+      <a href="../screener/index.html" class="nav-link">SCREENER</a>
+      <a href="#" class="nav-link">RESEARCH</a>
+      <a href="#" class="nav-link">AI QUERY</a>
       <div class="nav-link">Portfolio</div>
     </div>
   </div>
@@ -790,6 +790,11 @@ async function fetchFearGreed() {
       document.getElementById('fgScore').style.color = color;
       const fill = document.getElementById('fgFill');
       if (fill) fill.style.width = score + '%';
+      try {
+        const cached = JSON.parse(localStorage.getItem('agora_overview_cache') || '{}');
+        cached.FG_SCORE = { score, label: json.rating, color };
+        localStorage.setItem('agora_overview_cache', JSON.stringify(cached));
+      } catch(e) {}
     }
   } catch(e) { console.warn('Fear & Greed fetch failed', e); }
 }
@@ -828,6 +833,28 @@ async function fetchCryptoChange() {
 // ─── INIT ─────────────────────────────────────────────────────
 
 async function init() {
+  // Restore cached values instantly before any API calls
+  try {
+    const cached = localStorage.getItem('agora_overview_cache');
+    if (cached) {
+      const c = JSON.parse(cached);
+      if (c.INDICES) { INDICES.forEach((idx,i) => { if(c.INDICES[i]) Object.assign(idx, c.INDICES[i]); }); }
+      if (c.CRYPTO)  { CRYPTO.forEach((cr,i)  => { if(c.CRYPTO[i])  Object.assign(cr,  c.CRYPTO[i]);  }); }
+      if (c.FOREX_BIG) { FOREX_BIG.forEach((f,i) => { if(c.FOREX_BIG[i]) Object.assign(f, c.FOREX_BIG[i]); }); FOREX_SMALL = FOREX_BIG.slice(0,4); }
+      if (c.COMMODITIES) { COMMODITIES.forEach((cm,i) => { if(c.COMMODITIES[i]) Object.assign(cm, c.COMMODITIES[i]); }); }
+      if (c.MACRO) { MACRO.forEach((m,i) => { if(c.MACRO[i]) Object.assign(m, c.MACRO[i]); }); }
+      if (c.SP500_TICKERS) { SP500_TICKERS.forEach((t,i) => { if(c.SP500_TICKERS[i]) t.p = c.SP500_TICKERS[i].p; }); renderHeatmap(); }
+      if (c.FG_SCORE) {
+        document.getElementById('fgScore').textContent = c.FG_SCORE.score;
+        document.getElementById('fgScore').style.color = c.FG_SCORE.color;
+        document.getElementById('fgLabel').textContent = c.FG_SCORE.label;
+        document.getElementById('fgLabel').style.color = c.FG_SCORE.color;
+        document.getElementById('fgFill').style.width = c.FG_SCORE.score + '%';
+      }
+    }
+  } catch(e) {}
+
+  // Render immediately with cached or default values
   renderTicker();
   renderIndices();
   renderHeatmap();
@@ -838,12 +865,20 @@ async function init() {
   renderSignals();
   updateClock();
 
+  // Fetch fresh data in background
   await fetchCryptoPrices();
   await fetchMacroPulse();
   fetchEquityHeatmap();
   await fetchIndices();
   await fetchForex();
   await fetchCommodities();
+
+  // Save to cache after fresh data loaded
+  try {
+    localStorage.setItem('agora_overview_cache', JSON.stringify({
+      INDICES, CRYPTO, FOREX_BIG, COMMODITIES, MACRO, SP500_TICKERS
+    }));
+  } catch(e) {}
 
   setInterval(updateClock, 1000);
   setInterval(fetchCryptoPrices, 5000);
@@ -854,6 +889,15 @@ async function init() {
   setInterval(fetchCommodities, 60000);
   setInterval(fetchFearGreed, 300000);
   fetchFearGreed();
+
+  // Update cache every 60s
+  setInterval(() => {
+    try {
+      localStorage.setItem('agora_overview_cache', JSON.stringify({
+        INDICES, CRYPTO, FOREX_BIG, COMMODITIES, MACRO
+      }));
+    } catch(e) {}
+  }, 60000);
 }
 
 init();

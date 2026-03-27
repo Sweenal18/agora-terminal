@@ -103,7 +103,7 @@ def screen_assets(
                 CASE WHEN m.ma50 > 0
                     THEN (p.price - m.ma50) / m.ma50 * 100
                     ELSE NULL END as pct_from_ma50
-            FROM silver_equity_fundamentals f
+            FROM agora.main.silver_equity_fundamentals f
             LEFT JOIN price_changes p ON f.symbol = p.symbol
             LEFT JOIN moving_avgs m ON f.symbol = m.symbol
             WHERE 1=1
@@ -174,7 +174,7 @@ def get_sectors():
     """Get all available sectors."""
     try:
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
-        rows = conn.execute("SELECT DISTINCT sector FROM silver_equity_fundamentals WHERE sector IS NOT NULL ORDER BY sector").fetchall()
+        rows = conn.execute("SELECT DISTINCT sector FROM agora.main.silver_equity_fundamentals WHERE sector IS NOT NULL ORDER BY sector").fetchall()
         conn.close()
         return {"sectors": [r[0] for r in rows]}
     except Exception as e:
