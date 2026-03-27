@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 import psycopg2
 import psycopg2.extras
 import duckdb
-from datetime import datetime, timezone
+from datetime import datetime
 import calendar
 
 log = logging.getLogger("api.chart")
@@ -35,7 +35,7 @@ def to_unix(ts_str: str) -> int:
         try:
             dt = datetime.strptime(str(ts_str)[:19], fmt)
             return calendar.timegm(dt.timetuple())
-        except:
+        except Exception:
             continue
     return 0
 

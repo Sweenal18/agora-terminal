@@ -68,7 +68,7 @@ def safe_float(val, default=None):
         if val is None or val == "":
             return default
         return float(val)
-    except:
+    except Exception:
         return default
 
 def create_table(conn):
