@@ -53,3 +53,5 @@ logs/
 htmlcov/
 .env
 infra/docker/.env
+
+transform/dbt/agora.duckdb
