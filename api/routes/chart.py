@@ -18,7 +18,13 @@ QUESTDB_HOST = os.getenv("QUESTDB_HOST", "questdb")
 QUESTDB_PORT = int(os.getenv("QUESTDB_PG_PORT", "8812"))
 DUCKDB_PATH  = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
 
-CRYPTO_SYMBOLS = {"BTC", "ETH", "SOL"}
+CRYPTO_SYMBOLS = {"BTC", "ETH", "SOL", "BNB", "XRP", "ADA", "DOGE"}
+
+FOREX_SYMBOLS = {"EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD"}
+COMMODITY_SYMBOLS = {"GOLD", "OIL", "SILVER", "NATGAS"}
+COMMODITY_YAHOO_MAP = {
+    "GOLD": "GC=F", "OIL": "CL=F", "SILVER": "SI=F", "NATGAS": "NG=F"
+}
 
 def get_questdb():
     return psycopg2.connect(
@@ -50,8 +56,47 @@ def get_chart_ohlcv(symbol: str, timeframe: str = "1D", limit: int = 500):
 
     if sym in CRYPTO_SYMBOLS:
         return get_crypto_ohlcv(sym + "USDT", limit)
+    elif sym in FOREX_SYMBOLS:
+        return get_yahoo_ohlcv(sym + "=X", sym, limit)
+    elif sym in COMMODITY_SYMBOLS:
+        yahoo_sym = COMMODITY_YAHOO_MAP.get(sym, sym)
+        return get_yahoo_ohlcv(yahoo_sym, sym, limit)
     else:
-        return get_equity_ohlcv(sym, limit)
+        result = get_equity_ohlcv(sym, limit)
+        if not result["data"]:
+            return get_yahoo_ohlcv(sym, sym, limit)
+        return result
+
+def get_yahoo_ohlcv(yahoo_symbol: str, display_symbol: str, limit: int):
+    """Fetch OHLCV from Yahoo Finance for forex/commodities/unknown symbols."""
+    import requests, time
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
+        params = {"interval": "1d", "range": "2y"}
+        res = requests.get(url, params=params, headers=headers, timeout=15)
+        res.raise_for_status()
+        d = res.json()
+        result = d["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        ohlcv = result["indicators"]["quote"][0]
+        adjclose = result["indicators"].get("adjclose", [{}])[0].get("adjclose", [])
+        data = []
+        for i, ts in enumerate(timestamps):
+            try:
+                o = ohlcv["open"][i]
+                h = ohlcv["high"][i]
+                l = ohlcv["low"][i]
+                c = (adjclose[i] if adjclose and i < len(adjclose) and adjclose[i] else ohlcv["close"][i])
+                v = ohlcv["volume"][i] or 0
+                if None in (o, h, l, c): continue
+                data.append({"time": ts, "open": round(float(o),4), "high": round(float(h),4),
+                              "low": round(float(l),4), "close": round(float(c),4), "volume": float(v)})
+            except: continue
+        return {"symbol": display_symbol, "timeframe": "1D", "data": data[-limit:], "source": "yahoo"}
+    except Exception as e:
+        log.error(f"Yahoo chart error for {yahoo_symbol}: {e}")
+        return {"symbol": display_symbol, "timeframe": "1D", "data": [], "source": "yahoo"}
 
 def get_crypto_ohlcv(symbol: str, limit: int):
     """Fetch crypto OHLCV from QuestDB in TradingView format."""

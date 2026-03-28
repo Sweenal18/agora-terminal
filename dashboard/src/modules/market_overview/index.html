@@ -653,14 +653,14 @@ function renderCrypto() {
 
 function renderForex() {
   document.getElementById('forexGrid').innerHTML = FOREX_SMALL.map(f => `
-    <div class="forex-card">
+    <div class="forex-card" data-sym="${f.key}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
       <div class="forex-pair">${f.pair}</div>
       <div class="forex-rate">${f.rate}</div>
       <div class="forex-chg ${f.pos?'pos':'neg'}">${f.chg}</div>
     </div>
   `).join('');
   document.getElementById('commoditiesGrid').innerHTML = COMMODITIES.map(c => `
-    <div class="forex-card">
+    <div class="forex-card" data-sym="${c.key}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
       <div class="forex-pair">${c.pair}</div>
       <div class="forex-rate">${c.rate}</div>
       <div class="forex-chg ${c.pos?'pos':'neg'}">${c.chg}</div>
@@ -670,7 +670,7 @@ function renderForex() {
 
 function renderForexBig() {
   document.getElementById('forexBig').innerHTML = FOREX_BIG.map(f => `
-    <div class="forex-card">
+    <div class="forex-card" data-sym="${f.key}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
       <div class="forex-pair">${f.pair}</div>
       <div class="forex-rate">${f.rate}</div>
       <div class="forex-chg ${f.pos?'pos':'neg'}">${f.chg}</div>
