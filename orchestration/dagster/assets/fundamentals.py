@@ -76,10 +76,11 @@ def silver_equity_fundamentals(context: AssetExecutionContext):
         })
 
     import pandas as pd
-    records_df = pd.DataFrame(records)
     conn = duckdb.connect(DUCKDB_PATH)
     conn.execute("DROP TABLE IF EXISTS agora.main.silver_equity_fundamentals")
-    conn.execute("CREATE TABLE agora.main.silver_equity_fundamentals AS SELECT * FROM records_df")
+    conn.register("records_view", pd.DataFrame(records))
+    conn.execute("CREATE TABLE agora.main.silver_equity_fundamentals AS SELECT * FROM records_view")
+    conn.unregister("records_view")
     conn.close()
 
     context.log.info(f"Wrote {len(records)} fundamentals records to DuckDB")
