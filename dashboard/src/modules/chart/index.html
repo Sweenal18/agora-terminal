@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AGORA — Chart Terminal</title>
+<title>AGORA â€” Chart Terminal</title>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <style>
@@ -167,8 +167,8 @@
   <div class="chart-header">
     <div class="search-wrap">
       <div class="symbol-search">
-        <span style="color:var(--text-dim);font-size:13px;">⌕</span>
-        <input class="symbol-input" id="symbolInput" placeholder="BTC, AAPL..." value="BTC" autocomplete="off">
+        <span style="color:var(--text-dim);font-size:13px;">âŒ•</span>
+        <input class="symbol-input" id="symbolInput" placeholder="BTC, AAPL..." value="SPY" autocomplete="off">
       </div>
       <div class="symbol-dropdown" id="symbolDropdown" style="display:none;"></div>
     </div>
@@ -181,7 +181,7 @@
     </div>
 
     <div class="price-display">
-      <span class="price-symbol" id="priceSymbol">BTC</span>
+      <span class="price-symbol" id="priceSymbol">SPY</span>
       <span class="price-value" id="priceValue">--</span>
       <span class="price-change" id="priceChange">--</span>
     </div>
@@ -203,7 +203,7 @@
 <script>
 const API_BASE = 'http://localhost:8000';
 let chart, candleSeries, volumeSeries;
-let currentSymbol = 'BTC';
+let currentSymbol = 'SPY';
 let currentTf = '1m';
 let allSymbols = [];
 
@@ -385,7 +385,7 @@ async function init() {
   initChart();
   await loadSymbols();
   const urlSym = new URLSearchParams(window.location.search).get('symbol');
-  const initSym = urlSym || 'BTC';
+  const initSym = urlSym || 'SPY';
   currentSymbol = initSym;
   document.getElementById('symbolInput').value = initSym;
   document.getElementById('priceSymbol').textContent = initSym;
