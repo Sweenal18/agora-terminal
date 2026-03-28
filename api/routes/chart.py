@@ -69,7 +69,7 @@ def get_chart_ohlcv(symbol: str, timeframe: str = "1D", limit: int = 500):
 
 def get_yahoo_ohlcv(yahoo_symbol: str, display_symbol: str, limit: int):
     """Fetch OHLCV from Yahoo Finance for forex/commodities/unknown symbols."""
-    import requests, time
+    import requests
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
@@ -86,13 +86,21 @@ def get_yahoo_ohlcv(yahoo_symbol: str, display_symbol: str, limit: int):
             try:
                 o = ohlcv["open"][i]
                 h = ohlcv["high"][i]
-                l = ohlcv["low"][i]
+                low = ohlcv["low"][i]
                 c = (adjclose[i] if adjclose and i < len(adjclose) and adjclose[i] else ohlcv["close"][i])
                 v = ohlcv["volume"][i] or 0
-                if None in (o, h, l, c): continue
-                data.append({"time": ts, "open": round(float(o),4), "high": round(float(h),4),
-                              "low": round(float(l),4), "close": round(float(c),4), "volume": float(v)})
-            except: continue
+                if None in (o, h, low, c):
+                    continue
+                data.append({
+                    "time": ts,
+                    "open": round(float(o), 4),
+                    "high": round(float(h), 4),
+                    "low": round(float(low), 4),
+                    "close": round(float(c), 4),
+                    "volume": float(v),
+                })
+            except Exception:
+                continue
         return {"symbol": display_symbol, "timeframe": "1D", "data": data[-limit:], "source": "yahoo"}
     except Exception as e:
         log.error(f"Yahoo chart error for {yahoo_symbol}: {e}")
