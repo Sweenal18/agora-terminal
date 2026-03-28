@@ -1,0 +1,8 @@
+dagster==1.7.7
+dagster-webserver==1.7.7
+dagster-postgres==0.23.7
+dagster-docker==0.23.7
+requests==2.31.0
+duckdb==1.1.0
+psycopg2-binary==2.9.9
+pandas==2.1.4

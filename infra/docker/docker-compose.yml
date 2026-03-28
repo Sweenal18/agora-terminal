@@ -204,6 +204,57 @@ services:
       POLYGON_API_KEY: ${POLYGON_API_KEY:-}
     restart: on-failure
 
+  dagster-webserver:
+    build:
+      context: ../..
+      dockerfile: orchestration/dagster/Dockerfile
+    container_name: agora-dagster-webserver
+    networks: [agora-net]
+    ports:
+      - "3000:3000"
+    environment:
+      DAGSTER_HOME: /app/dagster_home
+      DAGSTER_PG_USER: ${POSTGRES_USER:-agora}
+      DAGSTER_PG_PASSWORD: ${POSTGRES_PASSWORD:-agora_secret}
+      DAGSTER_PG_HOST: postgres
+      DAGSTER_PG_DB: agora
+      DUCKDB_PATH: /app/transform/dbt/agora.duckdb
+      BRONZE_FILE: /app/polygon_bronze.jsonl
+      FMP_API_KEY: ${FMP_API_KEY:-}
+      FRED_API_KEY: ${FRED_API_KEY:-}
+    volumes:
+      - ../../transform/dbt:/app/transform/dbt
+      - ../../polygon_bronze.jsonl:/app/polygon_bronze.jsonl
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  dagster-daemon:
+    build:
+      context: ../..
+      dockerfile: orchestration/dagster/Dockerfile
+    container_name: agora-dagster-daemon
+    networks: [agora-net]
+    command: ["dagster-daemon", "run", "-f", "definitions.py"]
+    environment:
+      DAGSTER_HOME: /app/dagster_home
+      DAGSTER_PG_USER: ${POSTGRES_USER:-agora}
+      DAGSTER_PG_PASSWORD: ${POSTGRES_PASSWORD:-agora_secret}
+      DAGSTER_PG_HOST: postgres
+      DAGSTER_PG_DB: agora
+      DUCKDB_PATH: /app/transform/dbt/agora.duckdb
+      BRONZE_FILE: /app/polygon_bronze.jsonl
+      FMP_API_KEY: ${FMP_API_KEY:-}
+      FRED_API_KEY: ${FRED_API_KEY:-}
+    volumes:
+      - ../../transform/dbt:/app/transform/dbt
+      - ../../polygon_bronze.jsonl:/app/polygon_bronze.jsonl
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: agora-kafka-ui
