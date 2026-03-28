@@ -236,7 +236,7 @@ services:
       dockerfile: orchestration/dagster/Dockerfile
     container_name: agora-dagster-daemon
     networks: [agora-net]
-    command: ["dagster-daemon", "run", "-f", "definitions.py"]
+    command: ["dagster-daemon", "run"]
     environment:
       DAGSTER_HOME: /app/dagster_home
       DAGSTER_PG_USER: ${POSTGRES_USER:-agora}
