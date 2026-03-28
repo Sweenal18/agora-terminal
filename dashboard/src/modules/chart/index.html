@@ -384,7 +384,12 @@ document.querySelectorAll('.tf-btn').forEach(btn => {
 async function init() {
   initChart();
   await loadSymbols();
-  await loadChart('BTC', '1m');
+  const urlSym = new URLSearchParams(window.location.search).get('symbol');
+  const initSym = urlSym || 'BTC';
+  currentSymbol = initSym;
+  document.getElementById('symbolInput').value = initSym;
+  document.getElementById('priceSymbol').textContent = initSym;
+  await loadChart(initSym, '1m');
 }
 
 init();

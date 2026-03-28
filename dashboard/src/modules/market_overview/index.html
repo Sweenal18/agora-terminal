@@ -597,8 +597,11 @@ function renderIndices() {
     "M0,24 C10,20 20,16 30,20 C40,24 50,20 60,16 C70,12 80,8 90,10 C100,12 110,8 120,6",
     "M0,8 C10,10 20,12 30,10 C40,8 50,10 60,8 C70,6 80,8 90,6 C100,4 110,6 120,4",
   ];
-  document.getElementById('indicesGrid').innerHTML = INDICES.map((idx, i) => `
-    <div class="index-card ${idx.pos?'pos':'neg'}">
+  const idxSymMap = {'S&P 500':'SPY','NASDAQ':'QQQ','DOW JONES':'DIA','RUSSELL 2K':'IWM'};
+  document.getElementById('indicesGrid').innerHTML = INDICES.map((idx, i) => {
+    const etf = idxSymMap[idx.sym] || null;
+    return `
+    <div class="index-card ${idx.pos?'pos':'neg'}" ${etf ? `data-etf="${etf}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.etf"` : ''}>
       <div class="index-name">${idx.sym}</div>
       <div class="index-value">${fmt(idx.val)}</div>
       <div class="index-change ${idx.pos?'pos':'neg'}">
@@ -610,12 +613,12 @@ function renderIndices() {
         </svg>
       </div>
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 function renderHeatmap() {
   document.getElementById('heatmapGrid').innerHTML = SP500_TICKERS.map(t => `
-    <div class="heat-cell" style="background:${colorForPct(t.p)}" title="${t.s}: ${t.p>0?'+':''}${t.p}%">
+    <div class="heat-cell" style="background:${colorForPct(t.p)}" title="${t.s}: ${t.p>0?'+':''}${t.p}%" data-sym="${t.s}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym">
       <span class="cell-sym">${t.s}</span>
       <span class="cell-pct">${t.p>0?'+':''}${t.p}%</span>
     </div>
