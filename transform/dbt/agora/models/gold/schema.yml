@@ -1,0 +1,231 @@
+version: 2
+
+models:
+
+  - name: dim_instruments
+    description: >
+      Instrument reference dimension. One row per financial instrument (current
+      version only). Built from the snap_instruments SCD Type 2 snapshot.
+      All fact tables join here via instrument_key.
+    columns:
+      - name: instrument_key
+        description: MD5 surrogate key derived from symbol. Stable and deterministic.
+        tests: [not_null, unique]
+      - name: symbol
+        description: Ticker symbol. Natural business key.
+        tests: [not_null, unique]
+      - name: company_name
+        description: Full legal company name.
+        tests: [not_null]
+      - name: sector
+        description: GICS sector. Slowly changing -- tracked by SCD2 snapshot.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [Technology, Healthcare, Financials, Consumer Discretionary,
+                       Consumer Staples, Industrials, Energy, Utilities, Materials,
+                       Real Estate, Communication Services, Unknown]
+      - name: industry
+        description: GICS industry classification within sector.
+        tests: [not_null]
+      - name: currency
+        description: Trading currency.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [USD]
+      - name: asset_class
+        description: High-level asset classification.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [equity, crypto, etf, index]
+      - name: market_cap_bucket
+        description: Size bucket derived from market_cap USD value.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [mega_cap, large_cap, mid_cap, small_cap, micro_cap, unknown]
+      - name: valid_from
+        description: When this version of the instrument record became active.
+        tests: [not_null]
+
+  - name: dim_time
+    description: >
+      Date dimension covering 2015-01-01 through 2030-12-31.
+      One row per calendar date. date_key is YYYYMMDD integer.
+    columns:
+      - name: date_key
+        description: Integer surrogate key in YYYYMMDD format.
+        tests: [not_null, unique]
+      - name: calendar_date
+        description: Calendar date as DATE type.
+        tests: [not_null, unique]
+      - name: year
+        description: 4-digit calendar year.
+        tests: [not_null]
+      - name: quarter
+        description: Calendar quarter (1-4).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+      - name: month_number
+        description: Month number (1-12).
+        tests: [not_null]
+      - name: is_weekday
+        description: True if Monday through Friday.
+        tests: [not_null]
+      - name: is_weekend
+        description: True if Saturday or Sunday.
+        tests: [not_null]
+      - name: is_trading_day
+        description: True if US equity market trading day.
+        tests: [not_null]
+      - name: is_market_holiday
+        description: True if US federal market holiday.
+        tests: [not_null]
+
+  - name: fct_prices
+    description: >
+      Daily OHLCV fact table. One row per (instrument_key, date_key).
+      Incremental append -- new trading days added nightly by Dagster.
+    columns:
+      - name: instrument_key
+        description: Surrogate key. Join to dim_instruments.instrument_key.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_instruments')
+              field: instrument_key
+      - name: date_key
+        description: Integer date key. Join to dim_time.date_key.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_time')
+              field: date_key
+      - name: symbol
+        description: Retained natural key.
+        tests: [not_null]
+      - name: trade_date
+        description: Calendar date of the trading session.
+        tests: [not_null]
+      - name: open
+        description: Opening price in USD.
+        tests: [not_null]
+      - name: high
+        description: Intraday high price in USD.
+        tests: [not_null]
+      - name: low
+        description: Intraday low price in USD.
+        tests: [not_null]
+      - name: close
+        description: Closing price in USD.
+        tests: [not_null]
+      - name: volume
+        description: Total shares traded.
+        tests: [not_null]
+      - name: is_up_day
+        description: True if close > open.
+        tests: [not_null]
+      - name: asset_class
+        description: Asset class of this price record.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [equity, crypto, etf, index]
+      - name: dbt_loaded_at
+        description: UTC timestamp when this row was written by dbt.
+        tests: [not_null]
+
+  - name: fct_fundamentals
+    description: >
+      Daily fundamentals snapshot. One row per (instrument_key, date_key).
+      Source: FMP /stable/ endpoints. Actual columns reflect what FMP free
+      tier returns: beta, roe, ev_to_ebitda, price_to_book, price_to_sales,
+      dividend_yield, roic, current_ratio.
+    columns:
+      - name: instrument_key
+        description: Surrogate key. Join to dim_instruments.instrument_key.
+        tests: [not_null]
+      - name: date_key
+        description: Integer date key. Join to dim_time.date_key.
+        tests: [not_null]
+      - name: symbol
+        description: Retained natural key.
+        tests: [not_null]
+      - name: snapshot_date
+        description: Calendar date this snapshot was captured.
+        tests: [not_null]
+      - name: market_cap
+        description: Market capitalisation in USD at time of fetch.
+      - name: beta
+        description: Beta coefficient vs S&P 500.
+      - name: roe
+        description: Return on equity as decimal.
+      - name: ev_to_ebitda
+        description: Enterprise value divided by EBITDA.
+      - name: price_to_book
+        description: Price to book value ratio.
+      - name: price_to_sales
+        description: Price to sales ratio.
+      - name: dividend_yield
+        description: Annual dividend yield as decimal.
+      - name: roic
+        description: Return on invested capital as decimal.
+      - name: current_ratio
+        description: Current assets divided by current liabilities.
+      - name: is_market_cap_missing
+        description: True if market_cap is NULL.
+        tests: [not_null]
+      - name: is_roe_missing
+        description: True if roe is NULL.
+        tests: [not_null]
+      - name: dbt_loaded_at
+        description: UTC timestamp when this row was written by dbt.
+        tests: [not_null]
+
+  - name: fct_macro
+    description: >
+      FRED macro indicator time series. One row per (series_id, observation_date).
+      Use series_category to group indicators by theme.
+    columns:
+      - name: date_key
+        description: Integer date key. Join to dim_time.date_key.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_time')
+              field: date_key
+      - name: series_id
+        description: FRED series identifier.
+        tests: [not_null]
+      - name: observation_date
+        description: Date of this macro observation.
+        tests: [not_null]
+      - name: series_name
+        description: Human-readable name for the FRED series.
+        tests: [not_null]
+      - name: unit
+        description: Unit of measurement.
+        tests: [not_null]
+      - name: indicator_value
+        description: Numeric value of the economic indicator.
+        tests: [not_null]
+      - name: series_category
+        description: Thematic grouping for this series.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [interest_rate, yield_curve, inflation, employment,
+                       growth, risk_sentiment, money_supply, other]
+      - name: reporting_frequency
+        description: How often FRED publishes this series.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [daily, monthly, quarterly, unknown]
+      - name: dbt_loaded_at
+        description: UTC timestamp when this row was written by dbt.
+        tests: [not_null]

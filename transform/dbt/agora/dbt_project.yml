@@ -1,11 +1,46 @@
 name: agora
-version: 1.0.0
+version: "1.0.0"
 config-version: 2
+
 profile: agora
+
 model-paths: ["models"]
+snapshot-paths: ["snapshots"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
+seed-paths: ["seeds"]
+analysis-paths: ["analyses"]
+docs-paths: ["docs"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
 models:
   agora:
+
+    # Silver: full rebuild on every run
     silver:
       +materialized: table
+      +schema: silver
+      +tags: ["silver"]
+
+    # Gold: conformed dimensional model
+    gold:
+      +schema: gold
+      +tags: ["gold"]
+
+      # Dimensions are small — full table rebuild is fine
+      dimensions:
+        +materialized: table
+        +tags: ["dimension"]
+
+      # Facts grow daily — incremental append avoids full scans
+      facts:
+        +materialized: incremental
+        +incremental_strategy: append
+        +tags: ["fact"]
+
+snapshots:
+  agora:
+    +target_schema: snapshots
+    +tags: ["snapshot", "scd2"]

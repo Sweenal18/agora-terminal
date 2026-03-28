@@ -1,0 +1,99 @@
+version: 2
+
+sources:
+
+  - name: silver_equity
+    description: Cleaned and validated daily equity price data.
+    schema: main
+    tables:
+      - name: silver_equity_ohlcv_daily
+        description: One row per (symbol, trade_date). Adjusted daily OHLCV.
+        loaded_at_field: processed_at
+        freshness:
+          warn_after:  {count: 2, period: day}
+          error_after: {count: 5, period: day}
+        columns:
+          - name: symbol
+            description: Ticker symbol (e.g. AAPL, MSFT). Natural business key.
+          - name: trade_date
+            description: Calendar date of the trading session.
+          - name: open
+            description: Opening price in USD.
+          - name: high
+            description: Intraday high price in USD.
+          - name: low
+            description: Intraday low price in USD.
+          - name: close
+            description: Closing price in USD. Adjusted for splits and dividends.
+          - name: volume
+            description: Total shares traded during the session.
+          - name: vwap
+            description: Volume-weighted average price for the session.
+          - name: trade_count
+            description: Number of discrete trades executed during the session.
+          - name: source
+            description: Data provider that supplied this record.
+          - name: adjusted
+            description: Whether close price is adjusted for corporate actions.
+          - name: processed_at
+            description: UTC timestamp when written by the Silver pipeline.
+
+  - name: silver_fundamentals
+    description: Fundamental financial metrics per equity instrument from FMP.
+    schema: main
+    tables:
+      - name: silver_equity_fundamentals
+        description: One row per symbol. Company profile and trailing TTM ratios.
+        loaded_at_field: fetched_at
+        freshness:
+          warn_after:  {count: 3, period: day}
+          error_after: {count: 7, period: day}
+        columns:
+          - name: symbol
+            description: Ticker symbol. Natural business key.
+          - name: company_name
+            description: Full legal company name.
+          - name: sector
+            description: GICS sector classification.
+          - name: industry
+            description: GICS industry classification.
+          - name: exchange
+            description: Primary listing exchange.
+          - name: market_cap
+            description: Market capitalisation in USD at time of fetch.
+          - name: pe_ttm
+            description: Price-to-earnings ratio, trailing twelve months.
+          - name: revenue_growth
+            description: Year-over-year revenue growth as a decimal.
+          - name: gross_margin
+            description: Gross profit as a fraction of revenue.
+          - name: debt_to_equity
+            description: Total debt divided by total equity.
+          - name: current_ratio
+            description: Current assets divided by current liabilities.
+          - name: fetched_at
+            description: UTC timestamp when FMP returned this data.
+
+  - name: silver_macro
+    description: US macroeconomic indicators from the FRED API.
+    schema: main
+    tables:
+      - name: silver_macro_indicators
+        description: One row per (series_id, date). FRED time series data points.
+        loaded_at_field: processed_at
+        freshness:
+          warn_after:  {count: 3, period: day}
+          error_after: {count: 7, period: day}
+        columns:
+          - name: series_id
+            description: FRED series identifier (e.g. DFF, T10Y2Y, UNRATE, CPIAUCSL).
+          - name: series_name
+            description: Human-readable name for the series.
+          - name: value
+            description: Numeric value of the indicator for this observation.
+          - name: observation_date
+            description: Date of the observation.
+          - name: unit
+            description: Unit of measurement.
+          - name: processed_at
+            description: UTC timestamp when written by the Silver pipeline.
