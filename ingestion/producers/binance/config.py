@@ -9,6 +9,10 @@ SYMBOLS = [
     "btcusdt",
     "ethusdt",
     "solusdt",
+    "bnbusdt",
+    "xrpusdt",
+    "adausdt",
+    "dogeusdt",
 ]
 
 # Binance WebSocket base URL (no API key needed)

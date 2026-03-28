@@ -372,9 +372,13 @@ let INDICES = [
 ];
 
 let CRYPTO = [
-  { rank:1, sym:'BTC', name:'Bitcoin',  price:0, chg:0, pos:true },
-  { rank:2, sym:'ETH', name:'Ethereum', price:0, chg:0, pos:true },
-  { rank:3, sym:'SOL', name:'Solana',   price:0, chg:0, pos:true },
+  { rank:1, sym:'BTC',  name:'Bitcoin',  price:0, chg:0, pos:true },
+  { rank:2, sym:'ETH',  name:'Ethereum', price:0, chg:0, pos:true },
+  { rank:3, sym:'SOL',  name:'Solana',   price:0, chg:0, pos:true },
+  { rank:4, sym:'BNB',  name:'BNB',      price:0, chg:0, pos:true },
+  { rank:5, sym:'XRP',  name:'XRP',      price:0, chg:0, pos:true },
+  { rank:6, sym:'ADA',  name:'Cardano',  price:0, chg:0, pos:true },
+  { rank:7, sym:'DOGE', name:'Dogecoin', price:0, chg:0, pos:true },
 ];
 
 const MACRO = [
@@ -635,7 +639,7 @@ function renderMacro() {
 
 function renderCrypto() {
   document.getElementById('cryptoList').innerHTML = CRYPTO.map(c => `
-    <div class="asset-row">
+    <div class="asset-row" data-sym="${c.sym}USDT" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym">
       <div class="asset-rank">${c.rank}</div>
       <div class="asset-info">
         <div class="asset-sym">${c.sym}</div>
