@@ -59,6 +59,31 @@ def get_symbols():
         log.error(f"DuckDB error: {e}")
         return {"symbols": [], "error": str(e)}
 
+@router.get("/heatmap")
+def get_heatmap():
+    """Get latest price and 1d change % for all equity symbols in one query."""
+    try:
+        con = get_duckdb()
+        rows = con.execute("""
+            WITH ranked AS (
+                SELECT symbol, close, trade_date,
+                       ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY trade_date DESC) as rn
+                FROM agora.main.silver_equity_ohlcv_daily
+            ),
+            latest AS (SELECT symbol, close as c1, trade_date FROM ranked WHERE rn = 1),
+            prev   AS (SELECT symbol, close as c2 FROM ranked WHERE rn = 2)
+            SELECT l.symbol,
+                   ROUND((l.c1 - p.c2) / NULLIF(p.c2, 0) * 100, 2) as change_pct
+            FROM latest l
+            LEFT JOIN prev p ON l.symbol = p.symbol
+            ORDER BY l.symbol
+        """).fetchall()
+        con.close()
+        return {"data": {r[0]: r[1] for r in rows}, "source": "duckdb_silver"}
+    except Exception as e:
+        log.error(f"Heatmap error: {e}")
+        return {"data": {}, "error": str(e)}
+
 # Major indices mapping — Polygon tickers
 INDICES = {
     "I:SPX":  {"sym": "S&P 500",    "pos": True},

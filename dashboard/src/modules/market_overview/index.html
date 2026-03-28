@@ -472,21 +472,14 @@ async function fetchMacroPulse() {
 
 async function fetchEquityHeatmap() {
   try {
-    const tickers = ['AAPL','MSFT','NVDA','AMZN','META','GOOGL','JPM','V',
-                     'XOM','UNH','JNJ','PG','MA','AVGO','HD','MRK','COST',
-                     'CVX','ABBV','BAC','CSCO','AMD','NFLX','ADBE','QCOM'];
-    const promises = tickers.slice(0, 10).map(t =>
-      fetch(`${API_BASE}/api/equity/ohlcv/${t}?limit=2`).then(r => r.json()).catch(() => null)
-    );
-    const results = await Promise.all(promises);
-    results.forEach((res, i) => {
-      if (res && res.data && res.data.length >= 2) {
-        const pct = ((res.data[0].close - res.data[1].close) / res.data[1].close * 100);
-        const idx = SP500_TICKERS.findIndex(t => t.s === tickers[i]);
-        if (idx !== -1) SP500_TICKERS[idx].p = parseFloat(pct.toFixed(2));
-      }
-    });
-    renderHeatmap();
+    const res = await fetch(`${API_BASE}/api/equity/heatmap`);
+    const json = await res.json();
+    if (json.data) {
+      SP500_TICKERS.forEach(t => {
+        if (json.data[t.s] !== undefined) t.p = json.data[t.s];
+      });
+      renderHeatmap();
+    }
   } catch(e) { console.error('Equity heatmap error:', e); }
 }
 
@@ -779,11 +772,11 @@ function renderMarketStatus() {
   const s = getMarketStatus();
   const badgeLabel = { open: 'Open', pre: 'Pre-Open', closed: 'Closed' };
   document.getElementById('marketStatusBar').innerHTML = `
-    <div class="market-status-card ${s.nyseStatus}">
+    <div class="market-status-card ${s.nyseStatus}" onclick="window.location.href='../chart/index.html?symbol=SPY'" style="cursor:pointer">
       <div><div class="market-name">NYSE / NASDAQ</div><div class="market-time">New York &middot; ${s.nyseTime}</div></div>
       <span class="market-badge badge-${s.nyseStatus}">${badgeLabel[s.nyseStatus]}</span>
     </div>
-    <div class="market-status-card open">
+    <div class="market-status-card open" onclick="window.location.href='../chart/index.html?symbol=BTCUSDT'" style="cursor:pointer">
       <div><div class="market-name">CRYPTO</div><div class="market-time">24/7 Global Markets</div></div>
       <span class="market-badge badge-open">Live</span>
     </div>
