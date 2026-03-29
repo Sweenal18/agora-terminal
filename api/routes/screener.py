@@ -270,3 +270,75 @@ def get_market_cap_buckets():
         return {"buckets": [{"bucket": r[0], "count": r[1]} for r in rows]}
     except Exception as e:
         return {"buckets": [], "error": str(e)}
+
+@router.get("/search")
+def search_assets(q: str = "", limit: int = 10):
+    """
+    Fuzzy search across symbol, company name, sector, and industry.
+    Supports: ticker (AAPL), company name (Apple), sector (Technology).
+    Results ranked: exact symbol match first, then starts-with, then contains.
+    """
+    if not q or len(q.strip()) < 1:
+        return {"results": []}
+    try:
+        conn = duckdb.connect(DUCKDB_PATH, read_only=True)
+        results = conn.execute("""
+            WITH scored AS (
+                SELECT
+                    d.symbol,
+                    d.company_name,
+                    d.sector,
+                    d.industry,
+                    d.asset_class,
+                    d.market_cap_bucket,
+                    -- Latest price from fct_prices
+                    p.close    AS price,
+                    p.daily_return_pct AS change_pct,
+                    -- Relevance score: lower = more relevant
+                    CASE
+                        WHEN UPPER(d.symbol)       = UPPER(?)       THEN 1
+                        WHEN UPPER(d.symbol)       LIKE UPPER(?) || '%' THEN 2
+                        WHEN UPPER(d.company_name) LIKE UPPER(?) || '%' THEN 3
+                        WHEN UPPER(d.symbol)       LIKE '%' || UPPER(?) || '%' THEN 4
+                        WHEN UPPER(d.company_name) LIKE '%' || UPPER(?) || '%' THEN 5
+                        WHEN UPPER(d.sector)       LIKE '%' || UPPER(?) || '%' THEN 6
+                        WHEN UPPER(d.industry)     LIKE '%' || UPPER(?) || '%' THEN 7
+                        ELSE 99
+                    END AS score
+                FROM agora.main_gold.dim_instruments d
+                LEFT JOIN (
+                    SELECT instrument_key, close, daily_return_pct,
+                           ROW_NUMBER() OVER (PARTITION BY instrument_key ORDER BY trade_date DESC) AS rn
+                    FROM agora.main_gold.fct_prices
+                ) p ON d.instrument_key = p.instrument_key AND p.rn = 1
+                WHERE
+                    UPPER(d.symbol)       LIKE '%' || UPPER(?) || '%'
+                    OR UPPER(d.company_name) LIKE '%' || UPPER(?) || '%'
+                    OR UPPER(d.sector)       LIKE '%' || UPPER(?) || '%'
+                    OR UPPER(d.industry)     LIKE '%' || UPPER(?) || '%'
+            )
+            SELECT symbol, company_name, sector, industry, asset_class,
+                   market_cap_bucket, price, change_pct, score
+            FROM scored
+            WHERE score < 99
+            ORDER BY score ASC, symbol ASC
+            LIMIT ?
+        """, [q, q, q, q, q, q, q, q, q, q, q, limit]).fetchall()
+
+        conn.close()
+
+        cols = ["symbol", "company_name", "sector", "industry", "asset_class",
+                "market_cap_bucket", "price", "change_pct", "score"]
+        data = []
+        for row in results:
+            d = dict(zip(cols, row))
+            for k, v in d.items():
+                if hasattr(v, "item"):
+                    d[k] = v.item()
+            data.append(d)
+
+        return {"results": data, "query": q, "count": len(data)}
+
+    except Exception as e:
+        log.error(f"Search error: {e}")
+        return {"results": [], "query": q, "error": str(e)}
