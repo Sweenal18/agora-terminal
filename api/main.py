@@ -4,8 +4,6 @@ Serves real-time financial data to the dashboard
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
 from api.routes import crypto, equity, macro, chart, screener
 
 app = FastAPI(
@@ -30,14 +28,3 @@ app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "agora-terminal-api"}
-
-@app.get("/")
-def root():
-    return RedirectResponse(url="/dashboard/market_overview")
-
-# Serve dashboard static files
-app.mount(
-    "/dashboard",
-    StaticFiles(directory="/app/dashboard/src/modules", html=True),
-    name="dashboard",
-)

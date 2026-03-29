@@ -11,15 +11,15 @@ WITH source AS (
     SELECT *
     FROM {{ source('silver_fundamentals', 'silver_equity_fundamentals') }}
     {% if is_incremental() %}
-        WHERE fetched_at::TIMESTAMP > (SELECT MAX(source_fetched_at) FROM {{ this }})
+        WHERE updated_at::TIMESTAMP > (SELECT MAX(source_fetched_at) FROM {{ this }})
     {% endif %}
 ),
 final AS (
     SELECT
         md5(symbol)::VARCHAR                                            AS instrument_key,
-        CAST(STRFTIME(CAST(fetched_at::TIMESTAMP AS DATE), '%Y%m%d') AS INTEGER) AS date_key,
+        CAST(STRFTIME(CAST(updated_at::TIMESTAMP AS DATE), '%Y%m%d') AS INTEGER) AS date_key,
         symbol,
-        CAST(fetched_at::TIMESTAMP AS DATE)                             AS snapshot_date,
+        CAST(updated_at::TIMESTAMP AS DATE)                             AS snapshot_date,
         market_cap::DOUBLE                                              AS market_cap,
         beta::DOUBLE                                                    AS beta,
         week_52_high::DOUBLE                                            AS week_52_high,
@@ -33,9 +33,10 @@ final AS (
         current_ratio::DOUBLE                                           AS current_ratio,
         sector::VARCHAR                                                 AS sector,
         industry::VARCHAR                                               AS industry,
+        exchange::VARCHAR                                               AS exchange,
         (market_cap IS NULL)::BOOLEAN                                   AS is_market_cap_missing,
         (roe IS NULL)::BOOLEAN                                          AS is_roe_missing,
-        fetched_at::TIMESTAMP                                           AS source_fetched_at,
+        updated_at::TIMESTAMP                                           AS source_fetched_at,
         CURRENT_TIMESTAMP::TIMESTAMPTZ                                  AS dbt_loaded_at
     FROM source
 )

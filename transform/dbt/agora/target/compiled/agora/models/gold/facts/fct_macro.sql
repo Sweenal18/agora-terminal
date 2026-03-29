@@ -7,6 +7,8 @@ WITH source AS (
     SELECT *
     FROM "agora"."main"."silver_macro_indicators"
     
+        WHERE processed_at > (SELECT MAX(dbt_loaded_at) FROM "agora"."main_gold"."fct_macro")
+    
 ),
 with_date_key AS (
     SELECT

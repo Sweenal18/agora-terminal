@@ -9,6 +9,7 @@
                 'company_name',
                 'sector',
                 'industry',
+                'exchange',
                 'currency'
             ]
         )
@@ -16,13 +17,17 @@
 
     SELECT
         ohlcv.symbol                                                    AS symbol,
-        COALESCE(f.company_name::VARCHAR, ohlcv.symbol)                 AS company_name,
-        COALESCE(f.sector::VARCHAR,       'Unknown')                    AS sector,
-        COALESCE(f.industry::VARCHAR,     'Unknown')                    AS industry,
+        COALESCE(f.company_name, ohlcv.symbol)                          AS company_name,
+        COALESCE(f.sector,   'Unknown')                                 AS sector,
+        COALESCE(f.industry, 'Unknown')                                 AS industry,
+        COALESCE(f.exchange,  'Unknown')                                AS exchange,
         'USD'::VARCHAR                                                  AS currency,
         'equity'::VARCHAR                                               AS asset_class,
-        f.market_cap::DOUBLE                                            AS market_cap,
-        COALESCE(f.fetched_at::TIMESTAMP, CURRENT_TIMESTAMP::TIMESTAMP) AS fetched_at,
+        f.market_cap,
+        f.beta,
+        f.week_52_high,
+        f.week_52_low,
+        COALESCE(f.updated_at, CURRENT_TIMESTAMP::TIMESTAMP)            AS fetched_at,
         CURRENT_TIMESTAMP::TIMESTAMP                                    AS snapshot_taken_at
 
     FROM (

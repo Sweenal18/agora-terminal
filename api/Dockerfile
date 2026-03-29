@@ -6,9 +6,7 @@ RUN pip install --no-cache-dir --timeout=300 \
     psycopg2-binary==2.9.9 \
     duckdb==1.1.0 \
     requests==2.31.0 \
-    yfinance==0.2.36 \
-    aiofiles==23.2.1
+    yfinance==0.2.36
 COPY api/ ./api/
-COPY dashboard/src/modules/ ./dashboard/src/modules/
 COPY transform/dbt/agora.duckdb ./transform/dbt/agora.duckdb
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
