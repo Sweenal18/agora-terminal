@@ -1,0 +1,2 @@
+# GE config variables — add secrets here, never commit this file
+instance_id: agora-terminal-ge

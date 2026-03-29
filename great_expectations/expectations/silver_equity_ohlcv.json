@@ -1,0 +1,61 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "silver_equity_ohlcv",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 10000, "max_value": 100000 },
+      "meta": { "notes": "S&P 500 50 tickers x 500 days = 25000 rows minimum" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "symbol" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "trade_date" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "close" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "close", "min_value": 0.01, "max_value": 100000 },
+      "meta": { "notes": "Close price must be positive and below $100k" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "volume" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "volume", "min_value": 0 },
+      "meta": { "notes": "Volume must be non-negative" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "open" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "high", "min_value": 0.01 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "low", "min_value": 0.01 },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.17.11",
+    "notes": "Data quality expectations for Silver equity OHLCV daily data"
+  }
+}

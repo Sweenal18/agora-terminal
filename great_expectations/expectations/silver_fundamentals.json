@@ -1,0 +1,55 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "silver_fundamentals",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 40, "max_value": 60 },
+      "meta": { "notes": "Expect at least 40 of 50 symbols to be populated" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "symbol" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "company_name" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "sector" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "sector",
+        "value_set": [
+          "Technology", "Healthcare", "Financials", "Financial Services",
+          "Consumer Discretionary", "Consumer Cyclical", "Consumer Staples",
+          "Consumer Defensive", "Industrials", "Energy", "Utilities",
+          "Materials", "Basic Materials", "Real Estate",
+          "Communication Services", "Unknown"
+        ]
+      },
+      "meta": { "notes": "Sector must be a valid GICS classification" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "updated_at" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "market_cap", "min_value": 0, "mostly": 0.8 },
+      "meta": { "notes": "At least 80% of rows should have positive market cap" }
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.17.11",
+    "notes": "Data quality expectations for Silver equity fundamentals"
+  }
+}

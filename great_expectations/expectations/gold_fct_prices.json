@@ -1,0 +1,64 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "gold_fct_prices",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 10000, "max_value": 500000 },
+      "meta": { "notes": "Gold fct_prices grows daily" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "instrument_key" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "date_key" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "symbol" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "close" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": { "column": "close", "min_value": 0.01, "max_value": 100000 },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "daily_return_pct",
+        "min_value": -50,
+        "max_value": 50,
+        "mostly": 0.99
+      },
+      "meta": { "notes": "99% of daily returns should be within -50% to +50%" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "asset_class",
+        "value_set": ["equity", "crypto", "etf", "index"]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "dbt_loaded_at" },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.17.11",
+    "notes": "Data quality expectations for Gold fct_prices"
+  }
+}

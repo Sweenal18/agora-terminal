@@ -1,0 +1,57 @@
+{
+  "data_asset_type": null,
+  "expectation_suite_name": "gold_dim_instruments",
+  "expectations": [
+    {
+      "expectation_type": "expect_table_row_count_to_be_between",
+      "kwargs": { "min_value": 40, "max_value": 200 },
+      "meta": { "notes": "At least 40 instruments in the dimension" }
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "instrument_key" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": { "column": "instrument_key" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "symbol" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_unique",
+      "kwargs": { "column": "symbol" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_not_be_null",
+      "kwargs": { "column": "company_name" },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "asset_class",
+        "value_set": ["equity", "crypto", "etf", "index"]
+      },
+      "meta": {}
+    },
+    {
+      "expectation_type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "market_cap_bucket",
+        "value_set": ["mega_cap", "large_cap", "mid_cap", "small_cap", "micro_cap", "unknown"]
+      },
+      "meta": {}
+    }
+  ],
+  "ge_cloud_id": null,
+  "meta": {
+    "great_expectations_version": "0.17.11",
+    "notes": "Data quality expectations for Gold dim_instruments"
+  }
+}
