@@ -7,3 +7,4 @@ duckdb==1.1.0
 psycopg2-binary==2.9.9
 pandas==2.1.4
 great-expectations==0.17.11
+kafka-python==2.0.2

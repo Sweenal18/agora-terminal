@@ -11,6 +11,7 @@ volumes:
   minio-data:
   questdb-data:
   postgres-data:
+  connect-data:
 
 services:
 
@@ -121,6 +122,7 @@ services:
     networks: [agora-net]
     ports:
       - "5432:5432"
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_replication_slots=4", "-c", "max_wal_senders=4"]
     environment:
       POSTGRES_DB: agora
       POSTGRES_USER: ${POSTGRES_USER:-agora}
@@ -133,6 +135,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  kafka-connect:
+    image: debezium/connect:2.6
+    container_name: agora-kafka-connect
+    networks: [agora-net]
+    ports:
+      - "8083:8083"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: agora-connect
+      CONFIG_STORAGE_TOPIC: agora.connect.configs
+      OFFSET_STORAGE_TOPIC: agora.connect.offsets
+      STATUS_STORAGE_TOPIC: agora.connect.status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    volumes:
+      - connect-data:/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8083/connectors || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
 
   bronze-writer:
     build:
