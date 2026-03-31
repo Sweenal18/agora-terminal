@@ -126,6 +126,7 @@ IMPORTANT RULES:
 - For fundamental metrics (price_to_book, roe, beta etc.) always use fct_fundamentals, never fct_prices
 - For GDP, inflation, employment, yield curve, VIX questions always use fct_macro, never fct_fundamentals
 - fct_fundamentals does NOT have series_id, GDP, or any macro columns -- it only has the columns listed above
+- In fct_fundamentals, roe and roic and dividend_yield are stored as DECIMALS not percentages. roe=0.20 means 20%. So "ROE above 20%" means WHERE roe > 0.20, NOT WHERE roe > 20
 - Available series_id values in fct_macro: T10Y2Y (yield curve), T10Y3M (yield curve), CPIAUCSL (inflation CPI), PCEPI (inflation PCE), PAYEMS (nonfarm payrolls), GDP (nominal GDP), GDPC1 (real GDP), INDPRO (industrial production), VIXCLS (VIX volatility index). Never use shorthand like VIX, CPI, GDP_GROWTH -- use exact series_id values only
 - For sector filtering on fundamentals, fct_fundamentals has sector column directly -- no need to join dim_instruments
 - When using fct_fundamentals with alias f, always use f.column_name in SELECT and WHERE -- never use p.column_name
