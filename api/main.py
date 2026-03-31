@@ -5,6 +5,7 @@ Serves real-time financial data to the dashboard
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes import crypto, equity, macro, chart, screener, auth
+from api.ai_query import router as ai_query_router
 
 app = FastAPI(
     title="Agora Terminal API",
@@ -23,6 +24,7 @@ app.include_router(macro.router,    prefix="/api/macro",    tags=["macro"])
 app.include_router(chart.router,    prefix="/api/chart",    tags=["chart"])
 app.include_router(screener.router, prefix="/api/screener", tags=["screener"])
 app.include_router(auth.router)
+app.include_router(ai_query_router.router)
 
 @app.get("/health")
 def health():
