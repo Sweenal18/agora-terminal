@@ -124,6 +124,7 @@ IMPORTANT RULES:
   JOIN (SELECT series_id, MAX(observation_date) AS max_date FROM agora.main_gold.fct_macro GROUP BY series_id) latest
   ON m.series_id = latest.series_id AND m.observation_date = latest.max_date
 - For fundamental metrics (price_to_book, roe, beta etc.) always use fct_fundamentals, never fct_prices
+- Available series_id values in fct_macro: T10Y2Y (yield curve), T10Y3M (yield curve), CPIAUCSL (inflation CPI), PCEPI (inflation PCE), PAYEMS (nonfarm payrolls), GDP (nominal GDP), GDPC1 (real GDP), INDPRO (industrial production), VIXCLS (VIX volatility index). Never use shorthand like VIX, CPI, GDP_GROWTH -- use exact series_id values only
 - For sector filtering on fundamentals, fct_fundamentals has sector column directly -- no need to join dim_instruments
 - When using fct_fundamentals with alias f, always use f.column_name in SELECT and WHERE -- never use p.column_name
 - Always add LIMIT 100 unless user asks for all data
