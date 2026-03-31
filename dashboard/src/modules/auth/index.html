@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agora Terminal — Sign In</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg-card: #111827;
+    --bg-input: #1a2235;
+    --border: #1e2d45;
+    --teal: #00d4a8;
+    --teal-dim: rgba(0,212,168,0.25);
+    --teal-glow: rgba(0,212,168,0.08);
+    --text-primary: #e8eef7;
+    --text-secondary: #8899aa;
+    --text-dim: #445566;
+    --red: #ff4d6a;
+    --display: 'Arial', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text-primary); font-family: var(--display); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* Nav */
+  .nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 48px; border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: baseline; gap: 6px; }
+  .logo-agora { font-size: 16px; font-weight: 700; letter-spacing: 0.05em; color: var(--text-primary); }
+  .logo-terminal { font-size: 11px; font-weight: 400; letter-spacing: 0.2em; color: var(--text-secondary); }
+
+  /* Main */
+  .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; width: 100%; max-width: 420px; padding: 40px; }
+
+  .card-header { text-align: center; margin-bottom: 32px; }
+  .card-title { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+  .card-subtitle { font-size: 13px; color: var(--text-secondary); }
+
+  /* Tabs */
+  .tabs { display: flex; background: var(--bg); border-radius: 6px; padding: 3px; margin-bottom: 28px; }
+  .tab { flex: 1; text-align: center; padding: 7px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--text-secondary); cursor: pointer; border-radius: 4px; transition: all 0.2s; text-transform: uppercase; }
+  .tab.active { background: var(--bg-card); color: var(--teal); border: 1px solid var(--teal-dim); }
+
+  /* Form */
+  .form-group { margin-bottom: 16px; }
+  label { display: block; font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 6px; }
+  input { width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 14px; color: var(--text-primary); outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: var(--teal-dim); box-shadow: 0 0 0 3px var(--teal-glow); }
+  input::placeholder { color: var(--text-dim); }
+
+  .btn { width: 100%; padding: 11px; background: var(--teal); color: #0a0e1a; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; margin-top: 8px; }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .error { background: rgba(255,77,106,0.1); border: 1px solid rgba(255,77,106,0.3); border-radius: 6px; padding: 10px 14px; font-size: 13px; color: var(--red); margin-bottom: 16px; display: none; }
+  .success { background: rgba(0,212,168,0.08); border: 1px solid var(--teal-dim); border-radius: 6px; padding: 10px 14px; font-size: 13px; color: var(--teal); margin-bottom: 16px; display: none; }
+
+  .divider { text-align: center; font-size: 12px; color: var(--text-dim); margin: 20px 0; }
+  .skip-link { display: block; text-align: center; font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+  .skip-link:hover { color: var(--teal); }
+
+  .footer { text-align: center; padding: 20px; font-size: 11px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo">
+    <span class="logo-agora">AGORA</span>
+    <span class="logo-terminal">TERMINAL</span>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Welcome to Agora Terminal</div>
+      <div class="card-subtitle">Institutional-grade financial intelligence, free forever</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+      <div class="tab" id="tab-register" onclick="switchTab('register')">Create Account</div>
+    </div>
+
+    <div id="error-box" class="error"></div>
+    <div id="success-box" class="success"></div>
+
+    <!-- Login Form -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="btn" onclick="login()">Sign In</button>
+    </div>
+
+    <!-- Register Form -->
+    <div id="form-register" style="display:none;">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min. 8 characters" autocomplete="new-password"/>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="reg-confirm" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <button class="btn" onclick="register()">Create Account</button>
+    </div>
+
+    <div class="divider">or</div>
+    <a href="../market_overview/index.html" class="skip-link">Continue without signing in →</a>
+  </div>
+</div>
+
+<div class="footer">Agora Terminal · Open Source · Apache 2.0</div>
+
+<script>
+  const API = 'http://localhost:8000';
+
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+    document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+    clearMessages();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('success-box').style.display = 'none';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('success-box');
+    el.textContent = msg;
+    el.style.display = 'block';
+    document.getElementById('error-box').style.display = 'none';
+  }
+
+  function clearMessages() {
+    document.getElementById('error-box').style.display = 'none';
+    document.getElementById('success-box').style.display = 'none';
+  }
+
+  function saveAuth(data) {
+    localStorage.setItem('agora_token', data.access_token);
+    localStorage.setItem('agora_user', JSON.stringify(data.user));
+  }
+
+  async function login() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { showError('Please enter your email and password.'); return; }
+    const btn = document.querySelector('#form-login .btn');
+    btn.disabled = true; btn.textContent = 'Signing in...';
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.detail || 'Login failed.'); return; }
+      saveAuth(data);
+      showSuccess('Signed in! Redirecting...');
+      setTimeout(() => { window.location.href = '../market_overview/index.html'; }, 800);
+    } catch (e) {
+      showError('Could not connect to server.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  }
+
+  async function register() {
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const confirm = document.getElementById('reg-confirm').value;
+    if (!email || !password) { showError('Please fill in all fields.'); return; }
+    if (password !== confirm) { showError('Passwords do not match.'); return; }
+    if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
+    const btn = document.querySelector('#form-register .btn');
+    btn.disabled = true; btn.textContent = 'Creating account...';
+    try {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) { showError(data.detail || 'Registration failed.'); return; }
+      saveAuth(data);
+      showSuccess('Account created! Redirecting...');
+      setTimeout(() => { window.location.href = '../market_overview/index.html'; }, 800);
+    } catch (e) {
+      showError('Could not connect to server.');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Account';
+    }
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const activeTab = document.getElementById('tab-login').classList.contains('active');
+      activeTab ? login() : register();
+    }
+  });
+
+  // Redirect if already logged in
+  if (localStorage.getItem('agora_token')) {
+    window.location.href = '../market_overview/index.html';
+  }
+</script>
+</body>
+</html>

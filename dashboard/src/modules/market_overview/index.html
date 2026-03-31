@@ -249,6 +249,13 @@
       LIVE DATA
     </div>
     <div class="clock" id="clock">--:--:-- UTC</div>
+    <div id="user-nav" style="display:none;align-items:center;gap:10px;">
+      <span id="user-email" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.05em;"></span>
+      <button onclick="signOut()" style="font-size:10px;font-weight:500;letter-spacing:0.1em;color:var(--text-secondary);background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;" onmouseover="this.style.color=`var(--teal)`;this.style.borderColor=`var(--teal-dim)`" onmouseout="this.style.color=`var(--text-secondary)`;this.style.borderColor=`var(--border)`">Sign Out</button>
+    </div>
+    <div id="signin-nav" style="display:none;">
+      <a href="../auth/index.html" style="font-size:10px;font-weight:500;letter-spacing:0.1em;color:var(--teal);border:1px solid var(--teal-dim);border-radius:4px;padding:3px 10px;text-decoration:none;text-transform:uppercase;">Sign In</a>
+    </div>
   </div>
 </nav>
 
@@ -1002,6 +1009,20 @@ async function init() {
 init();
 document.addEventListener('DOMContentLoaded', initSearch);
 if (document.readyState !== 'loading') initSearch();
+  function signOut() {
+    localStorage.removeItem('agora_token');
+    localStorage.removeItem('agora_user');
+    window.location.href = '../auth/index.html';
+  }
+  (function() {
+    const user = JSON.parse(localStorage.getItem('agora_user') || 'null');
+    if (user) {
+      document.getElementById('user-nav').style.display = 'flex';
+      document.getElementById('user-email').textContent = user.email;
+    } else {
+      document.getElementById('signin-nav').style.display = 'block';
+    }
+  })();
 </script>
 </body>
 </html>

@@ -5,7 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AGORA ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Chart Terminal</title>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js">  function signOut() {
+    localStorage.removeItem('agora_token');
+    localStorage.removeItem('agora_user');
+    window.location.href = '../auth/index.html';
+  }
+  (function() {
+    const user = JSON.parse(localStorage.getItem('agora_user') || 'null');
+    if (user) {
+      document.getElementById('user-nav').style.display = 'flex';
+      document.getElementById('user-email').textContent = user.email;
+    } else {
+      document.getElementById('signin-nav').style.display = 'block';
+    }
+  })();
+</script>
 <style>
   :root {
     --bg-deep: #050810;

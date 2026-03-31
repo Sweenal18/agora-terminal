@@ -342,6 +342,20 @@ async function init() {
 }
 
 init();
+  function signOut() {
+    localStorage.removeItem('agora_token');
+    localStorage.removeItem('agora_user');
+    window.location.href = '../auth/index.html';
+  }
+  (function() {
+    const user = JSON.parse(localStorage.getItem('agora_user') || 'null');
+    if (user) {
+      document.getElementById('user-nav').style.display = 'flex';
+      document.getElementById('user-email').textContent = user.email;
+    } else {
+      document.getElementById('signin-nav').style.display = 'block';
+    }
+  })();
 </script>
 </body>
 </html>
