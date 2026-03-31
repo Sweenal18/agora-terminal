@@ -22,7 +22,8 @@ Open source Bloomberg Terminal alternative. Free forever. All data sources are f
   - fct_macro populated [OK] (9097 rows across 9 FRED series, commit 2aa5591)
   - Chart Terminal backend [OK] (info/ohlcv/symbols endpoints, timeframe filtering, commit 7370d40)
   - Chart Terminal frontend [OK] (TradingView candlestick + info sidebar, commit 28da3b3)
-  - Remaining: Asset Screener, Research Terminal, AI Query Engine UI
+  - AI Query Engine UI [OK] (chat interface, SQL display, session stats, commit 788b972)
+  - Remaining: Asset Screener, Research Terminal
 
 ---
 
@@ -42,7 +43,7 @@ Missing FRED series (returned 0 obs, backlog): FEDFUNDS, DFF, T5Y5E, CPILFESL, U
 
 ## Next Steps (in order)
 
-- Phase 4 Sprint 4 -- AI Query Engine UI (chat interface in dashboard)
+- Phase 4 Sprint 5 -- Asset Screener frontend (filter UI already exists, wire to Gold layer)
 - Make repo public + fix dashboard (GitHub Pages needs public repo)
 - Sprint 5 cloud migration -- Oracle ARM A1 (4 OCPU/24GB) when capacity available; Hetzner CAX21 at 6.49/mo as fallback
 
