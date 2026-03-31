@@ -20,7 +20,8 @@ Open source Bloomberg Terminal alternative. Free forever. All data sources are f
 - **Phase 4 IN PROGRESS:**
   - Sprint 1 AI Query Engine ✅ (Ollama + qwen2.5-coder:3b, POST /api/ai/query, commit c4caa30)
   - fct_macro populated ✅ (9097 rows across 9 FRED series, commit 2aa5591)
-  - Remaining: Chart Terminal, Asset Screener, Research Terminal
+  - Chart Terminal backend ✅ (info/ohlcv/symbols endpoints, timeframe filtering, commit 7370d40)
+  - Remaining: Chart Terminal frontend, Asset Screener, Research Terminal, AI Query Engine UI
 
 ---
 
@@ -40,10 +41,8 @@ Missing FRED series (returned 0 obs, backlog): FEDFUNDS, DFF, T5Y5E, CPILFESL, U
 
 ## Next Steps (in order)
 
-- Phase 4 Sprint 2 — choose one:
-  - AI Query Engine UI (chat interface in dashboard)
-  - Fix missing FRED series (debug 0-observation series)
-  - Chart Terminal backend (OHLCV API + TradingView Lightweight Charts)
+- Phase 4 Sprint 3 — Chart Terminal frontend (TradingView Lightweight Charts UI)
+- Phase 4 Sprint 4 — AI Query Engine UI (chat interface in dashboard)
 - Make repo public + fix dashboard (GitHub Pages needs public repo)
 - Sprint 5 cloud migration — Oracle ARM A1 (4 OCPU/24GB) when capacity available; Hetzner CAX21 at €6.49/mo as fallback
 
@@ -79,6 +78,7 @@ Missing FRED series (returned 0 obs, backlog): FEDFUNDS, DFF, T5Y5E, CPILFESL, U
 - **Ollama:** Runs on Windows host (NOT in Docker). Installed at `C:\Users\Sweetan Bandodkar\AppData\Local\Programs\Ollama\`. Reachable from containers via `host.docker.internal:11434`. Model: `qwen2.5-coder:3b`
 - **AI Query Engine:** `api/ai_query/engine.py` — `DUCKDB_PATH=/app/transform/dbt/agora.duckdb`. fct_macro series_ids: T10Y2Y, T10Y3M, CPIAUCSL, PCEPI, PAYEMS, GDP, GDPC1, INDPRO, VIXCLS
 - **dbt:** dbt-fusion 2.0 on host is INCOMPATIBLE with project syntax. dbt-core runs only inside Dagster ephemeral containers. For one-off Gold table population use Python direct write scripts in `ingestion/fetchers/`
+- **Chart Terminal:** `api/routes/chart.py` — timeframes: 1W, 1M, 3M, 6M, 1Y, 2Y, 5Y, MAX. Equity data from DuckDB Silver, Yahoo Finance fallback for forex/commodities/unknown symbols. Info endpoint pulls from dim_instruments + fct_fundamentals + fct_prices.
 
 ---
 
@@ -97,6 +97,9 @@ Missing FRED series (returned 0 obs, backlog): FEDFUNDS, DFF, T5Y5E, CPILFESL, U
 | GET /api/macro/commodities | Yahoo Finance | Live |
 | POST /api/ai/query | Ollama + DuckDB Gold | Live (NL to SQL) |
 | GET /api/ai/health | Ollama host | Live |
+| GET /api/chart/ohlcv/{symbol} | DuckDB Silver / Yahoo | Live (timeframe: 1W-MAX) |
+| GET /api/chart/info/{symbol} | DuckDB Gold | Live |
+| GET /api/chart/symbols | DuckDB Silver | Live (57 symbols) |
 
 ---
 
@@ -110,6 +113,7 @@ Missing FRED series (returned 0 obs, backlog): FEDFUNDS, DFF, T5Y5E, CPILFESL, U
 - Ollama on Windows host, not Docker — AMD GPU has no ROCm support on Windows, CPU inference ~5-40s per query
 - AI Query Engine uses qwen2.5-coder:3b (SQL-optimized, 3B fits in RAM)
 - dbt Gold population via Python scripts when dbt-fusion incompatibility blocks normal dbt run
+- TradingView Lightweight Charts (free, MIT) for Chart Terminal frontend
 
 ---
 
