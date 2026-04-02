@@ -8,7 +8,6 @@ Runtime: ~110 minutes (free tier rate limit)
 Usage: python ingestion/fetch_sp500_ohlcv.py
 """
 
-import json
 import logging
 import time
 import requests
