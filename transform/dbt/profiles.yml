@@ -3,5 +3,9 @@ agora:
   outputs:
     dev:
       type: duckdb
+      path: "transform/dbt/agora.duckdb"
+      threads: 4
+    docker:
+      type: duckdb
       path: "/app/transform/dbt/agora.duckdb"
       threads: 4
