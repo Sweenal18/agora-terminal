@@ -75,7 +75,7 @@ Missing FRED series (returned 0 obs, backlog): FEDFUNDS, DFF, T5Y5E, CPILFESL, U
 - CDC: Debezium connector password is change_me_in_production (from infra/docker/.env). Schema Registry must be started separately. Kafka Connect on port 8083.
 - Ollama: Runs on Windows host (NOT in Docker). Installed at C:\Users\Sweetan Bandodkar\AppData\Local\Programs\Ollama\. Reachable from containers via host.docker.internal:11434. Model: qwen2.5-coder:3b
 - AI Query Engine: api/ai_query/engine.py -- DUCKDB_PATH=/app/transform/dbt/agora.duckdb. fct_macro series_ids: T10Y2Y, T10Y3M, CPIAUCSL, PCEPI, PAYEMS, GDP, GDPC1, INDPRO, VIXCLS
-- dbt: dbt-fusion 2.0 on host is INCOMPATIBLE with project syntax. dbt-core runs only inside Dagster ephemeral containers. For one-off Gold table population use Python direct write scripts in ingestion/fetchers/
+- dbt: dbt-core 1.11.7 NOW WORKS on Windows via Python 3.12 venv at C:\dbt-env. Activate with: C:\dbt-env\Scripts\Activate.ps1. Run models with: dbt run --project-dir transform/dbt/agora --profiles-dir transform/dbt. Use --full-refresh for incremental models after bulk data loads. profiles.yml has dev (local) and docker targets.
 - Chart Terminal: api/routes/chart.py -- timeframes: 1W, 1M, 3M, 6M, 1Y, 2Y, 5Y, MAX. Equity data from DuckDB Silver, Yahoo Finance fallback for forex/commodities/unknown symbols. Info endpoint pulls from dim_instruments + fct_fundamentals + fct_prices.
 
 ---
