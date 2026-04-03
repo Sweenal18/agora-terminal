@@ -1,10 +1,11 @@
 """
 Agora Terminal - AI Query Engine
 Natural language -> DuckDB SQL -> results
-Model: qwen2.5-coder:3b via Ollama (local)
+Model: llama-3.1-8b-instant via Groq API
 """
 
 import json
+import os
 import re
 import time
 import urllib.request
@@ -12,9 +13,10 @@ import urllib.error
 import duckdb
 from typing import Any
 
-OLLAMA_URL = "http://host.docker.internal:11434/api/generate"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 DUCKDB_PATH = "/app/transform/dbt/agora.duckdb"
-MODEL = "qwen2.5-coder:3b"
+MODEL = "llama-3.1-8b-instant"
 
 SCHEMA_CONTEXT = """
 You have access to a DuckDB financial database. All tables are in the schema: agora.main_gold
@@ -22,9 +24,9 @@ You have access to a DuckDB financial database. All tables are in the schema: ag
 TABLE: agora.main_gold.fct_prices
 PURPOSE: Daily OHLCV price data for equities and crypto
 COLUMNS:
-  instrument_key VARCHAR  -- join key to dim_instruments
-  date_key       INTEGER  -- join key to dim_time (format YYYYMMDD)
-  symbol         VARCHAR  -- ticker e.g. AAPL, BTC-USD
+  instrument_key VARCHAR
+  date_key       INTEGER
+  symbol         VARCHAR
   trade_date     DATE
   open           DOUBLE
   high           DOUBLE
@@ -32,19 +34,16 @@ COLUMNS:
   close          DOUBLE
   volume         BIGINT
   vwap           DOUBLE
-  daily_return_pct DOUBLE  -- percentage daily return
-  price_range    DOUBLE
+  daily_return_pct DOUBLE
   price_range_pct DOUBLE
   volume_usd_approx DOUBLE
-  volume_ratio   DOUBLE    -- volume vs 30d average
+  volume_ratio   DOUBLE
   is_up_day      BOOLEAN
-  asset_class    VARCHAR   -- equity or crypto
-  adjusted       BOOLEAN
-NOTE: fct_prices does NOT have price_to_book, roe, beta, market_cap or any fundamental metrics
+  asset_class    VARCHAR
+NOTE: fct_prices does NOT have company_name, price_to_book, roe, beta, market_cap or any fundamental metrics
 
 TABLE: agora.main_gold.fct_fundamentals
 PURPOSE: Fundamental metrics per instrument per snapshot date
-USE THIS TABLE for: price_to_book, price_to_sales, roe, beta, market_cap, dividend_yield, ev_to_ebitda, roic, current_ratio, week_52_high, week_52_low
 COLUMNS:
   instrument_key VARCHAR
   date_key       INTEGER
@@ -63,6 +62,7 @@ COLUMNS:
   current_ratio  DOUBLE
   sector         VARCHAR
   industry       VARCHAR
+NOTE: fct_fundamentals does NOT have company_name
 
 TABLE: agora.main_gold.fct_macro
 PURPOSE: FRED macroeconomic indicators
@@ -74,10 +74,9 @@ COLUMNS:
   unit              VARCHAR
   indicator_value   DOUBLE
   series_category   VARCHAR
-  reporting_frequency VARCHAR
 
 TABLE: agora.main_gold.dim_instruments
-PURPOSE: Instrument master data
+PURPOSE: Instrument master data - the ONLY table with company_name
 COLUMNS:
   instrument_key   VARCHAR
   symbol           VARCHAR
@@ -95,15 +94,7 @@ COLUMNS:
   date_key        INTEGER
   calendar_date   DATE
   year            BIGINT
-  quarter         BIGINT
   month_number    BIGINT
-  month_name      VARCHAR
-  week_of_year    BIGINT
-  day_of_week     BIGINT
-  day_name        VARCHAR
-  fiscal_year     BIGINT
-  fiscal_quarter  BIGINT
-  year_month      VARCHAR
   is_weekday      BOOLEAN
   is_trading_day  BOOLEAN
   is_last_7_days  BOOLEAN
@@ -112,51 +103,42 @@ COLUMNS:
   is_ytd          BOOLEAN
   is_today        BOOLEAN
 
-IMPORTANT RULES:
+CRITICAL RULES:
 - Always prefix tables with agora.main_gold.
-- Join fct_prices to dim_instruments using instrument_key
-- Join any fact table to dim_time using date_key to filter by date
-- is_last_30_days, is_ytd, is_last_7_days, is_today ONLY exist on dim_time -- NEVER use these on fact tables directly
-- DuckDB date arithmetic: use CURRENT_DATE - INTERVAL '30 days' NOT DATE_SUB(). Example: WHERE trade_date >= CURRENT_DATE - INTERVAL '30 days'
-- Prefer using dim_time boolean flags (is_last_30_days, is_ytd) over date arithmetic when possible
-- DuckDB does NOT support tuple IN subquery syntax like (col1, col2) IN (SELECT ...) -- never use this
-- For latest value per series in fct_macro use JOIN pattern:
+- company_name ONLY exists in dim_instruments -- NEVER select company_name from fct_prices or fct_fundamentals
+- Always use these aliases: fct_prices=p, fct_fundamentals=f, dim_instruments=d, fct_macro=m, dim_time=dt
+- Always JOIN dim_instruments d ON p.instrument_key = d.instrument_key to get d.symbol and d.company_name
+- Join fact tables to dim_time using date_key to filter by date
+- is_last_30_days, is_ytd, is_last_7_days ONLY exist on dim_time -- never on fact tables
+- To use dim_time flags you MUST join it: JOIN agora.main_gold.dim_time dt ON p.date_key = dt.date_key THEN use dt.is_last_30_days = true
+- Alternatively use date arithmetic directly: WHERE p.trade_date >= CURRENT_DATE - INTERVAL '30 days' (this is simpler and preferred)
+- DuckDB date arithmetic: use CURRENT_DATE - INTERVAL '30 days' NOT DATE_SUB()
+- For fundamental metrics (price_to_book, roe, beta etc.) use fct_fundamentals
+- For GDP, inflation, employment, VIX use fct_macro with exact series_id values:
+  T10Y2Y, T10Y3M, CPIAUCSL, PCEPI, PAYEMS, GDP, GDPC1, INDPRO, VIXCLS
+- roe, roic, dividend_yield in fct_fundamentals are decimals: roe=0.20 means 20%
+- For latest macro value per series use:
   JOIN (SELECT series_id, MAX(observation_date) AS max_date FROM agora.main_gold.fct_macro GROUP BY series_id) latest
   ON m.series_id = latest.series_id AND m.observation_date = latest.max_date
-- For fundamental metrics (price_to_book, roe, beta etc.) always use fct_fundamentals, never fct_prices
-- For GDP, inflation, employment, yield curve, VIX questions always use fct_macro, never fct_fundamentals
-- fct_fundamentals does NOT have series_id, GDP, or any macro columns -- it only has the columns listed above
-- In fct_fundamentals, roe and roic and dividend_yield are stored as DECIMALS not percentages. roe=0.20 means 20%. So "ROE above 20%" means WHERE roe > 0.20, NOT WHERE roe > 20
-- Available series_id values in fct_macro: T10Y2Y (yield curve), T10Y3M (yield curve), CPIAUCSL (inflation CPI), PCEPI (inflation PCE), PAYEMS (nonfarm payrolls), GDP (nominal GDP), GDPC1 (real GDP), INDPRO (industrial production), VIXCLS (VIX volatility index). Never use shorthand like VIX, CPI, GDP_GROWTH -- use exact series_id values only
-- For sector filtering on fundamentals, fct_fundamentals has sector column directly -- no need to join dim_instruments
-- When using fct_fundamentals with alias f, always use f.column_name in SELECT and WHERE -- never use p.column_name
-- Always add LIMIT 100 unless user asks for all data
-- Return only the SQL query, no explanation, no markdown fences
+- If question mentions a specific stock symbol like AAPL, add WHERE d.symbol = 'AAPL'
+- Always add LIMIT 50 unless user asks for all data
+- Return ONLY the SQL query, no explanation, no markdown fences
 """
 
-SYSTEM_PROMPT = """You are a financial data analyst assistant for Agora Terminal.
-Your job is to convert natural language questions into DuckDB SQL queries.
+SYSTEM_PROMPT = """You are a financial data analyst for Agora Terminal.
+Convert natural language questions into DuckDB SQL queries.
 
-""" + SCHEMA_CONTEXT + """
+""" + SCHEMA_CONTEXT
 
-Rules:
-- Return ONLY the SQL query, nothing else
-- No markdown code fences
-- No explanations before or after
-- Use proper DuckDB syntax
-- Always use the full table path: agora.main_gold.<table_name>
-"""
 
-# Map of table short names to their canonical alias
 TABLE_ALIAS_MAP = {
     "fct_prices": "p",
     "fct_fundamentals": "f",
     "fct_macro": "m",
-    "dim_instruments": "i",
+    "dim_instruments": "d",
     "dim_time": "dt",
 }
 
-# Columns that belong exclusively to each table
 TABLE_COLUMNS = {
     "fct_fundamentals": {
         "price_to_book", "price_to_sales", "roe", "beta", "market_cap",
@@ -165,33 +147,25 @@ TABLE_COLUMNS = {
     },
     "fct_prices": {
         "open", "high", "low", "close", "volume", "vwap",
-        "daily_return_pct", "price_range", "price_range_pct",
+        "daily_return_pct", "price_range_pct",
         "volume_usd_approx", "volume_ratio", "is_up_day", "trade_date",
     },
 }
 
 
 def _fix_alias(sql: str) -> str:
-    """
-    Detect the actual alias used for each table in FROM/JOIN clauses
-    and fix any stale aliases (e.g. p. used instead of f.) in SELECT/WHERE.
-    """
-    # Extract actual aliases: pattern is "agora.main_gold.TABLE_NAME alias"
     actual_aliases: dict[str, str] = {}
     for table, canonical in TABLE_ALIAS_MAP.items():
         pattern = rf"agora\.main_gold\.{table}\s+(\w+)"
         match = re.search(pattern, sql, re.IGNORECASE)
         if match:
             actual_aliases[table] = match.group(1)
-
-    # For each table, if its columns are prefixed with wrong alias, fix them
     for table, cols in TABLE_COLUMNS.items():
         if table not in actual_aliases:
             continue
         correct_alias = actual_aliases[table]
         for wrong_alias in set(TABLE_ALIAS_MAP.values()) - {correct_alias}:
             for col in cols:
-                # Replace wrong_alias.col with correct_alias.col
                 sql = re.sub(
                     rf"\b{wrong_alias}\.{col}\b",
                     f"{correct_alias}.{col}",
@@ -201,26 +175,29 @@ def _fix_alias(sql: str) -> str:
     return sql
 
 
-def _call_ollama(question: str) -> str:
+def _call_groq(question: str) -> str:
     payload = {
         "model": MODEL,
-        "prompt": SYSTEM_PROMPT + "\n\nQuestion: " + question + "\n\nSQL:",
-        "stream": False,
-        "options": {
-            "temperature": 0.1,
-            "num_predict": 512,
-        }
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": "Question: " + question + "\n\nSQL:"}
+        ],
+        "temperature": 0.1,
+        "max_tokens": 512,
     }
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
-        OLLAMA_URL,
+        GROQ_URL,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + GROQ_API_KEY,
+        },
         method="POST"
     )
-    with urllib.request.urlopen(req, timeout=120) as resp:
+    with urllib.request.urlopen(req, timeout=30) as resp:
         result = json.loads(resp.read().decode())
-        return result["response"].strip()
+        return result["choices"][0]["message"]["content"].strip()
 
 
 def _clean_sql(raw: str) -> str:
@@ -230,6 +207,17 @@ def _clean_sql(raw: str) -> str:
     if select_match:
         raw = raw[select_match.start():]
     raw = _fix_alias(raw)
+    raw = re.sub(
+        r"DATE_SUB\s*\(\s*CURRENT_DATE\s*,\s*(INTERVAL\s+['\"]?[0-9]+\s+\w+['\"]?)\s*\)",
+        r"CURRENT_DATE - \1",
+        raw, flags=re.IGNORECASE
+    )
+    # Fix model incorrectly placing dim_time flags on fact table aliases
+    import re as _re2
+    raw = _re2.sub(r'\b\w+\.is_last_30_days\s*=\s*true', "p.trade_date >= CURRENT_DATE - INTERVAL '30 days'", raw, flags=_re2.IGNORECASE)
+    raw = _re2.sub(r'\b\w+\.is_last_7_days\s*=\s*true', "p.trade_date >= CURRENT_DATE - INTERVAL '7 days'", raw, flags=_re2.IGNORECASE)
+    raw = _re2.sub(r'\b\w+\.is_ytd\s*=\s*true', "EXTRACT(year FROM p.trade_date) = EXTRACT(year FROM CURRENT_DATE)", raw, flags=_re2.IGNORECASE)
+    raw = _re2.sub(r'\b\w+\.is_last_365_days\s*=\s*true', "p.trade_date >= CURRENT_DATE - INTERVAL '365 days'", raw, flags=_re2.IGNORECASE)
     return raw.strip()
 
 
@@ -246,7 +234,7 @@ def run_query(question: str) -> dict[str, Any]:
     start = time.time()
     sql = None
     try:
-        raw_sql = _call_ollama(question)
+        raw_sql = _call_groq(question)
         sql = _clean_sql(raw_sql)
         results = _execute_sql(sql)
         duration_ms = int((time.time() - start) * 1000)
@@ -265,7 +253,7 @@ def run_query(question: str) -> dict[str, Any]:
             "results": [],
             "row_count": 0,
             "duration_ms": int((time.time() - start) * 1000),
-            "error": "Ollama unreachable: " + str(e),
+            "error": "Groq API error: " + str(e),
         }
     except duckdb.Error as e:
         return {
