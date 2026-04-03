@@ -4,7 +4,6 @@ Natural language -> DuckDB SQL -> results
 Model: llama-3.1-8b-instant via Groq API
 """
 
-import json
 import os
 import re
 import time
