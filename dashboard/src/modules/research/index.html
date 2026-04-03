@@ -672,6 +672,14 @@ function handleChatKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 }
 
+function isConversational(q) {
+  const q2 = q.trim().toLowerCase();
+  const dataP = [/^(show|list|get|find|display|what is the|what are the|how much|how many|give me the)/,/\b(price trend|moving average|ma20|ma50|ma200|market cap|volume|52.week|top \d|bottom \d)\b/];
+  if (dataP.some(p => p.test(q2))) return false;
+  const chatP = [/^(is |are |was |were |will |would |should |could |can |do |does |did )/,/good (stock|investment|buy|time|idea)/,/worth (buying|investing|holding)/,/(why|what happened|explain|thoughts|opinion|overvalued|undervalued|risky)/,/good time|right time|safe to/,/best stock|best investment|invest right now|invest today/];
+  return chatP.some(p => p.test(q2));
+}
+
 async function sendChat() {
   const input = document.getElementById('chatInput');
   const question = input.value.trim();
@@ -684,18 +692,20 @@ async function sendChat() {
   appendMsg('user', question);
   const thinkId = appendThinking();
   try {
-    const res = await fetch(`${API}/api/ai/query`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: contextQ }),
-    });
-    const data = await res.json();
-    removeEl(thinkId);
-    if (data.error) { appendMsg('ai', 'Error: ' + data.error); }
-    else { appendAIResult(data); }
-  } catch(e) { removeEl(thinkId); appendMsg('ai', 'Connection error — is the API running?'); }
+    if (isConversational(question)) {
+      const ctx = currentInfo ? `${currentSymbol} (${currentInfo.name||currentSymbol}), sector: ${currentInfo.sector||"unknown"}, price: $${currentInfo.last_close||"N/A"}, change: ${currentInfo.daily_return_pct ? currentInfo.daily_return_pct.toFixed(2)+"%" : "N/A"}` : currentSymbol;
+      const res = await fetch(`${API}/api/ai/chat`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({question, context: ctx}) });
+      const data = await res.json();
+      removeEl(thinkId);
+      if (data.error) { appendMsg("ai", "Error: " + data.error); } else { appendMsg("ai", data.answer); }
+    } else {
+      const res = await fetch(`${API}/api/ai/query`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({question: contextQ}) });
+      const data = await res.json(); removeEl(thinkId);
+      if (data.error) { appendMsg("ai", "Error: " + data.error); } else { appendAIResult(data); }
+    }
+  } catch(e) { removeEl(thinkId); appendMsg("ai", "Connection error — is the API running?"); }
   btn.disabled = false; input.focus();
 }
-
 function appendMsg(role, text) {
   const msgs = document.getElementById('chatMessages');
   const d = document.createElement('div');
@@ -785,9 +795,11 @@ function fmtCell(v, col) {
     if (Math.abs(v) < 10 && !Number.isInteger(v)) return v.toFixed(3);
     return v.toFixed(2);
   }
+  if (typeof v === "string" && v.match(/^\d{4}-\d{2}-\d{2}T/)) return v.substring(0, 10);
   return esc(String(v));
 }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
 function signOut() { localStorage.removeItem('agora_token'); localStorage.removeItem('agora_user'); window.location.href = '../auth/index.html'; }
 
 (function() {

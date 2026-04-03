@@ -233,6 +233,39 @@ def _execute_sql(sql: str) -> list[dict[str, Any]]:
         con.close()
 
 
+def run_chat(question: str, context: str = "") -> dict[str, Any]:
+    """Handle conversational questions that need text responses, not SQL."""
+    start = time.time()
+    try:
+        import requests as _requests
+        system = """You are a financial research assistant for Agora Terminal.
+Answer questions about stocks, markets, and finance concisely and clearly.
+You have access to data on S&P 500 stocks including fundamentals, price history, and macro indicators.
+Keep answers to 3-5 sentences. Be direct and factual. Do not make specific buy/sell recommendations.
+If context about a specific stock is provided, use it in your answer."""
+        messages = [{"role": "system", "content": system}]
+        if context:
+            messages.append({"role": "user", "content": f"Context: {context}"})
+            messages.append({"role": "assistant", "content": "I have the context. What would you like to know?"})
+        messages.append({"role": "user", "content": question})
+        payload = {"model": MODEL, "messages": messages, "temperature": 0.3, "max_tokens": 300}
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + GROQ_API_KEY,
+            "User-Agent": "Mozilla/5.0",
+        }
+        resp = _requests.post(GROQ_URL, json=payload, headers=headers, timeout=30)
+        resp.raise_for_status()
+        answer = resp.json()["choices"][0]["message"]["content"].strip()
+        return {
+            "answer": answer,
+            "duration_ms": int((time.time() - start) * 1000),
+            "error": None,
+        }
+    except Exception as e:
+        return {"answer": None, "duration_ms": int((time.time() - start) * 1000), "error": str(e)}
+
+
 def run_query(question: str) -> dict[str, Any]:
     start = time.time()
     sql = None

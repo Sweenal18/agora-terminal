@@ -1,17 +1,18 @@
 """
 Agora Terminal - AI Query Engine Router
-POST /api/ai/query
+POST /api/ai/query  -- NL to SQL queries
+POST /api/ai/chat   -- Conversational text responses
 """
-
 from fastapi import APIRouter
 from pydantic import BaseModel
-from .engine import run_query
+from .engine import run_query, run_chat
 
 router = APIRouter(prefix="/api/ai", tags=["AI Query Engine"])
 
 
 class QueryRequest(BaseModel):
     question: str
+    context: str = ""
 
 
 @router.post("/query")
@@ -26,6 +27,13 @@ def ai_query(request: QueryRequest):
             "error": "Question cannot be empty.",
         }
     return run_query(request.question.strip())
+
+
+@router.post("/chat")
+def ai_chat(request: QueryRequest):
+    if not request.question or not request.question.strip():
+        return {"answer": "Question cannot be empty."}
+    return run_chat(request.question.strip(), request.context)
 
 
 @router.get("/health")
