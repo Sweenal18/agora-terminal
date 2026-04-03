@@ -401,11 +401,22 @@ function setSymbol(sym) {
   loadSymbol();
 }
 
+function updateActiveChip() {
+  document.querySelectorAll('.chip').forEach(c => {
+    const onclick = c.getAttribute('onclick') || '';
+    const match = onclick.match(/setSymbol\('([^']+)'\)/);
+    if (match) c.style.color = match[1] === currentSymbol ? 'var(--teal)' : '';
+    if (match) c.style.borderColor = match[1] === currentSymbol ? 'var(--teal-dim)' : '';
+    if (match) c.style.background = match[1] === currentSymbol ? 'var(--teal-glow)' : '';
+  });
+}
+
 async function loadSymbol() {
   const inputVal = document.getElementById('symbolInput').value.trim();
   const raw = inputVal.toUpperCase().split(' ')[0];
   if (!raw) return;
   currentSymbol = raw;
+  updateActiveChip();
   document.getElementById('chatCtxSymbol').textContent = raw;
   document.getElementById('chatCtxName').textContent = '';
   document.getElementById('sendBtn').disabled = false;

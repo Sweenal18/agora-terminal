@@ -176,6 +176,7 @@ def _fix_alias(sql: str) -> str:
 
 
 def _call_groq(question: str) -> str:
+    import requests as _requests
     payload = {
         "model": MODEL,
         "messages": [
@@ -185,19 +186,14 @@ def _call_groq(question: str) -> str:
         "temperature": 0.1,
         "max_tokens": 512,
     }
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        GROQ_URL,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + GROQ_API_KEY,
-        },
-        method="POST"
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        result = json.loads(resp.read().decode())
-        return result["choices"][0]["message"]["content"].strip()
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + GROQ_API_KEY,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    }
+    resp = _requests.post(GROQ_URL, json=payload, headers=headers, timeout=30)
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"].strip()
 
 
 def _clean_sql(raw: str) -> str:
