@@ -719,7 +719,7 @@ function appendAIResult(data) {
       data.results.slice(0,8).map(row=>`<tr>${cols.map(c=>`<td>${fmtCell(row[c],c)}</td>`).join('')}</tr>`).join('')
     }</tbody></table>${data.row_count > 8 ? `<div style="font-family:var(--mono);font-size:15px;color:var(--text-dim);margin-top:6px;">+${data.row_count-8} more rows</div>` : ''}</div>`;
   }
-  d.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-bubble"><div style="color:var(--text-secondary);font-size:15px;margin-bottom:6px;">${data.row_count} row${data.row_count!==1?'s':''} · ${data.duration_ms}ms</div>${tbl}<div class="sql-block"><div class="sql-label">SQL</div>${esc(data.sql)}</div></div>`;
+  d.innerHTML = `<div class="msg-avatar">AI</div><div class="msg-bubble"><div style="color:var(--text-secondary);font-size:15px;margin-bottom:6px;">${data.row_count} row${data.row_count!==1?'s':''} · ${data.duration_ms}ms</div>${tbl}<div class="sql-toggle" onclick="var b=this.nextElementSibling;b.style.display=b.style.display=='none'?'block':'none';this.textContent=b.style.display=='none'?'+ Show SQL':'-  Hide SQL'">+ Show SQL</div><div class="sql-block" style="display:none;background:var(--bg-deep);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin-top:4px;font-family:var(--mono);font-size:11px;color:var(--text-secondary);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;">${esc(data.sql)}</div></div>`;
   msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
 }
 
