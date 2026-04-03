@@ -121,6 +121,14 @@ CRITICAL RULES:
   ON m.series_id = latest.series_id AND m.observation_date = latest.max_date
 - If question mentions a specific stock symbol like AAPL, add WHERE d.symbol = 'AAPL'
 - Always add LIMIT 50 unless user asks for all data
+- For "X vs sector average" comparisons use this pattern:
+  SELECT 
+    MAX(CASE WHEN d.symbol = 'AAPL' THEN f.roe END) AS aapl_roe,
+    AVG(f.roe) AS sector_avg_roe
+  FROM agora.main_gold.fct_fundamentals f
+  JOIN agora.main_gold.dim_instruments d ON f.instrument_key = d.instrument_key
+  WHERE d.sector = (SELECT sector FROM agora.main_gold.dim_instruments WHERE symbol = 'AAPL' LIMIT 1)
+  Never use GROUP BY the metric itself when computing averages across a sector
 - Return ONLY the SQL query, no explanation, no markdown fences
 """
 

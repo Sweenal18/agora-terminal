@@ -29,10 +29,10 @@
   .logo { font-family:var(--display); font-size:18px; font-weight:700; letter-spacing:0.15em; color:var(--teal); text-shadow:0 0 20px rgba(0,212,170,0.5); }
   .logo span { color:var(--text-secondary); font-weight:300; }
   .nav-links { display:flex; gap:4px; }
-  .nav-link { font-family:var(--display); font-size:11px; font-weight:500; letter-spacing:0.1em; color:var(--text-secondary); padding:6px 14px; border-radius:4px; cursor:pointer; text-decoration:none; transition:all 0.2s; border:1px solid transparent; }
+  .nav-link { font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:0.1em; color:var(--text-secondary); padding:6px 14px; border-radius:4px; cursor:pointer; text-decoration:none; transition:all 0.2s; border:1px solid transparent; }
   .nav-link:hover { color:var(--text-primary); background:var(--bg-card); }
-  .nav-link.active { color:var(--teal); background:var(--teal-glow); border-color:var(--teal-dim); font-size:11px; font-weight:500; letter-spacing:0.1em; }
-  .live-badge { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; color:var(--green); }
+  .nav-link.active { color:var(--teal); background:var(--teal-glow); border-color:var(--teal-dim); font-size:14px; font-weight:500; letter-spacing:0.1em; }
+  .live-badge { display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:14px; color:var(--green); }
   .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse-dot 2s infinite; }
   @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.3)} }
 
@@ -40,7 +40,7 @@
 
   .screener-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .screener-title { font-family:var(--display); font-size:16px; font-weight:600; letter-spacing:0.1em; color:var(--text-primary); }
-  .result-count { font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+  .result-count { font-family:var(--mono); font-size:14px; color:var(--text-dim); }
 
   .filters-panel {
     background:var(--bg-panel); border:1px solid var(--border); border-radius:8px;
@@ -48,10 +48,10 @@
     grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px;
   }
   .filter-group { display:flex; flex-direction:column; gap:6px; }
-  .filter-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; }
+  .filter-label { font-family:var(--mono); font-size:14px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; }
   .filter-input, .filter-select {
     background:var(--bg-card); border:1px solid var(--border); border-radius:4px;
-    padding:7px 10px; font-family:var(--mono); font-size:12px; color:var(--text-primary);
+    padding:7px 10px; font-family:var(--mono); font-size:14px; color:var(--text-primary);
     outline:none; transition:border-color 0.2s; width:100%;
   }
   .filter-input:focus, .filter-select:focus { border-color:var(--teal-dim); }
@@ -60,13 +60,13 @@
   .filter-actions { display:flex; gap:8px; align-items:flex-end; }
   .btn-screen {
     background:var(--teal-glow); border:1px solid var(--teal-dim); border-radius:4px;
-    padding:8px 20px; font-family:var(--display); font-size:11px; font-weight:600;
+    padding:8px 20px; font-family:var(--display); font-size:14px; font-weight:600;
     letter-spacing:0.1em; color:var(--teal); cursor:pointer; transition:all 0.2s; white-space:nowrap;
   }
   .btn-screen:hover { background:var(--teal); color:var(--bg-deep); }
   .btn-reset {
     background:transparent; border:1px solid var(--border); border-radius:4px;
-    padding:8px 14px; font-family:var(--mono); font-size:11px; color:var(--text-secondary);
+    padding:8px 14px; font-family:var(--mono); font-size:14px; color:var(--text-secondary);
     cursor:pointer; transition:all 0.2s; white-space:nowrap;
   }
   .btn-reset:hover { border-color:var(--border-bright); color:var(--text-primary); }
@@ -74,7 +74,7 @@
   .results-table { width:100%; border-collapse:collapse; }
   .table-wrap { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .results-table th {
-    font-family:var(--mono); font-size:10px; font-weight:600; letter-spacing:0.1em;
+    font-family:var(--mono); font-size:14px; font-weight:600; letter-spacing:0.1em;
     color:var(--text-dim); text-transform:uppercase; padding:10px 14px;
     text-align:left; border-bottom:1px solid var(--border); white-space:nowrap;
     cursor:pointer; user-select:none; transition:color 0.2s;
@@ -82,7 +82,7 @@
   .results-table th:hover { color:var(--text-secondary); }
   .results-table th.sorted { color:var(--teal); }
   .results-table td {
-    font-family:var(--mono); font-size:12px; color:var(--text-primary);
+    font-family:var(--mono); font-size:14px; color:var(--text-primary);
     padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap;
   }
   .results-table tr:last-child td { border-bottom:none; }
@@ -94,10 +94,10 @@
   .neu { color:var(--text-secondary) !important; }
   .sector-badge {
     display:inline-block; padding:2px 8px; border-radius:3px;
-    font-size:10px; background:var(--bg-card); border:1px solid var(--border);
+    font-size:14px; background:var(--bg-card); border:1px solid var(--border);
     color:var(--text-secondary);
   }
-  .loading-row td { text-align:center; padding:40px; color:var(--text-dim); font-size:13px; }
+  .loading-row td { text-align:center; padding:40px; color:var(--text-dim); font-size:14px; }
 
   .sort-indicator { margin-left:4px; }
 </style>
@@ -116,11 +116,11 @@
   <div style="display:flex;align-items:center;gap:16px;">
     <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
     <div id="user-nav" style="display:none;align-items:center;gap:10px;">
-      <span id="user-email" style="font-size:11px;color:var(--text-secondary);letter-spacing:0.05em;"></span>
-      <button onclick="signOut()" style="font-size:10px;font-weight:500;letter-spacing:0.1em;color:var(--text-secondary);background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;" onmouseover="this.style.color=`var(--teal)`;this.style.borderColor=`var(--teal-dim)`" onmouseout="this.style.color=`var(--text-secondary)`;this.style.borderColor=`var(--border)`">Sign Out</button>
+      <span id="user-email" style="font-size:14px;color:var(--text-secondary);letter-spacing:0.05em;"></span>
+      <button onclick="signOut()" style="font-size:14px;font-weight:500;letter-spacing:0.1em;color:var(--text-secondary);background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;" onmouseover="this.style.color=`var(--teal)`;this.style.borderColor=`var(--teal-dim)`" onmouseout="this.style.color=`var(--text-secondary)`;this.style.borderColor=`var(--border)`">Sign Out</button>
     </div>
     <div id="signin-nav" style="display:none;">
-      <a href="../auth/index.html" style="font-size:10px;font-weight:500;letter-spacing:0.1em;color:var(--teal);border:1px solid var(--teal-dim);border-radius:4px;padding:3px 10px;text-decoration:none;text-transform:uppercase;">Sign In</a>
+      <a href="../auth/index.html" style="font-size:14px;font-weight:500;letter-spacing:0.1em;color:var(--teal);border:1px solid var(--teal-dim);border-radius:4px;padding:3px 10px;text-decoration:none;text-transform:uppercase;">Sign In</a>
     </div>
   </div>
 </nav>
