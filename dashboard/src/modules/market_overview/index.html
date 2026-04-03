@@ -236,11 +236,9 @@
     <div class="logo">AGORA<span> TERMINAL</span></div>
     <div class="nav-links">
       <a href="../market_overview/index.html" class="nav-link active">OVERVIEW</a>
-      <a href="../chart/index.html" class="nav-link">CHARTS</a>
+      <a href="../research/index.html" class="nav-link">RESEARCH</a>
       <a href="../screener/index.html" class="nav-link">SCREENER</a>
-      <a href="#" class="nav-link">RESEARCH</a>
-      <a href="../ai_query/index.html" class="nav-link">AI QUERY</a>
-      <div class="nav-link">Portfolio</div>
+      <a href="#" class="nav-link">PORTFOLIO</a>
     </div>
   </div>
   <div class="nav-right">
@@ -605,7 +603,7 @@ function renderIndices() {
   document.getElementById('indicesGrid').innerHTML = INDICES.map((idx, i) => {
     const etf = idxSymMap[idx.sym] || null;
     return `
-    <div class="index-card ${idx.pos?'pos':'neg'}" ${etf ? `data-etf="${etf}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.etf"` : ''}>
+    <div class="index-card ${idx.pos?'pos':'neg'}" ${etf ? `data-etf="${etf}" onclick="window.location.href='../research/index.html?symbol='+this.dataset.etf"` : ''}>
       <div class="index-name">${idx.sym}</div>
       <div class="index-value">${fmt(idx.val)}</div>
       <div class="index-change ${idx.pos?'pos':'neg'}">
@@ -622,7 +620,7 @@ function renderIndices() {
 
 function renderHeatmap() {
   document.getElementById('heatmapGrid').innerHTML = SP500_TICKERS.map(t => `
-    <div class="heat-cell" style="background:${colorForPct(t.p)}" title="${t.s}: ${t.p>0?'+':''}${t.p}%" data-sym="${t.s}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym">
+    <div class="heat-cell" style="background:${colorForPct(t.p)}" title="${t.s}: ${t.p>0?'+':''}${t.p}%" data-sym="${t.s}" onclick="window.location.href='../research/index.html?symbol='+this.dataset.sym">
       <span class="cell-sym">${t.s}</span>
       <span class="cell-pct">${t.p>0?'+':''}${t.p}%</span>
     </div>
@@ -646,7 +644,7 @@ function renderMacro() {
 
 function renderCrypto() {
   document.getElementById('cryptoList').innerHTML = CRYPTO.map(c => `
-    <div class="asset-row" data-sym="${c.sym}USDT" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym">
+    <div class="asset-row" data-sym="${c.sym}USDT" onclick="window.location.href='../research/index.html?symbol='+this.dataset.sym">
       <div class="asset-rank">${c.rank}</div>
       <div class="asset-info">
         <div class="asset-sym">${c.sym}</div>
@@ -660,14 +658,14 @@ function renderCrypto() {
 
 function renderForex() {
   document.getElementById('forexGrid').innerHTML = FOREX_SMALL.map(f => `
-    <div class="forex-card" data-sym="${f.key}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
+    <div class="forex-card" data-sym="${f.key}" onclick="window.location.href='../research/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
       <div class="forex-pair">${f.pair}</div>
       <div class="forex-rate">${f.rate}</div>
       <div class="forex-chg ${f.pos?'pos':'neg'}">${f.chg}</div>
     </div>
   `).join('');
   document.getElementById('commoditiesGrid').innerHTML = COMMODITIES.map(c => `
-    <div class="forex-card" data-sym="${c.key}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
+    <div class="forex-card" data-sym="${c.key}" onclick="window.location.href='../research/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
       <div class="forex-pair">${c.pair}</div>
       <div class="forex-rate">${c.rate}</div>
       <div class="forex-chg ${c.pos?'pos':'neg'}">${c.chg}</div>
@@ -677,7 +675,7 @@ function renderForex() {
 
 function renderForexBig() {
   document.getElementById('forexBig').innerHTML = FOREX_BIG.map(f => `
-    <div class="forex-card" data-sym="${f.key}" onclick="window.location.href='../chart/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
+    <div class="forex-card" data-sym="${f.key}" onclick="window.location.href='../research/index.html?symbol='+this.dataset.sym" style="cursor:pointer">
       <div class="forex-pair">${f.pair}</div>
       <div class="forex-rate">${f.rate}</div>
       <div class="forex-chg ${f.pos?'pos':'neg'}">${f.chg}</div>
@@ -862,12 +860,26 @@ async function fetchCryptoChange() {
 
 let searchTimeout = null;
 
-function navigateToChart(item) {
-  const sym = item.symbol + (item.asset_class === 'crypto' ? 'USDT' : '');
-  window.location.href = '../chart/index.html?symbol=' + sym;
+function isQuestion(q) {
+  const qtrimmed = q.trim().toLowerCase();
+  const questionWords = ["what", "why", "how", "when", "is", "are", "will", "should", "can", "who", "which", "compare", "explain", "show me", "tell me"];
+  return questionWords.some(w => qtrimmed.startsWith(w)) || qtrimmed.includes("?");
 }
 
-function initSearch() {
+function navigateToSearch(query) {
+  if (isQuestion(query)) {
+    window.location.href = "../research/index.html?ai=" + encodeURIComponent(query);
+  } else {
+    window.location.href = "../research/index.html?symbol=" + query.trim().toUpperCase();
+  }
+}
+
+function navigateToChart(item) {
+  const sym = item.symbol + (item.asset_class === 'crypto' ? 'USDT' : '');
+  window.location.href = '../research/index.html?symbol=' + sym;
+}
+
+function initSearch_orig() {
   const input = document.getElementById('globalSearch');
   const dropdown = document.getElementById('searchDropdown');
   let activeIdx = -1;
@@ -934,9 +946,21 @@ function initSearch() {
     if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('active', i === activeIdx)); }
     else if (e.key === 'Enter' && activeIdx >= 0) { navigateToChart(results[activeIdx]); dropdown.classList.remove('visible'); input.value = ''; }
+    else if (e.key === 'Enter' && activeIdx < 0) {
+      const q = input.value.trim();
+      if (q) { dropdown.classList.remove('visible'); input.value = ''; navigateToSearch(q); }
+    }
     else if (e.key === 'Escape') { dropdown.classList.remove('visible'); input.value = ''; }
   });
 }
+
+function initSearch() {
+  initSearch_orig();
+  // Update placeholder to signal smart routing
+  const input = document.getElementById('globalSearch');
+  if (input) input.placeholder = 'Search any ticker, or ask a question... (Enter to go)';
+}
+
 async function init() {
   // Restore cached values instantly before any API calls
   try {
