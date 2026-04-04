@@ -108,12 +108,12 @@
   .tab { font-family:var(--display); font-size:15px; font-weight:500; letter-spacing:0.1em; color:var(--text-secondary); padding:12px 20px; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; white-space:nowrap; }
   .tab:hover { color:var(--text-primary); }
   .tab.active { color:var(--teal); border-bottom-color:var(--teal); }
-  .tab-content { flex:1; overflow:hidden; display:none; }
+  .tab-content { flex:1; overflow:hidden; display:none; flex-direction:column; }
   .tab-content.active { display:flex; flex-direction:column; }
   .chart-area { flex:1; position:relative; min-height:0; }
   #tv-chart { width:100%; height:100%; }
   .metrics-strip { display:grid; grid-template-columns:repeat(6,1fr); border-top:1px solid var(--border); background:var(--bg-panel); flex-shrink:0; }
-  .peer-strip { display:flex; gap:8px; padding:8px 16px; background:var(--bg-panel); border-top:1px solid var(--border); overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
+  .peer-strip { display:flex; gap:8px; padding:8px 16px; background:var(--bg-panel); border-top:1px solid var(--border); overflow-x:auto; flex-shrink:0; scrollbar-width:none; min-height:42px; }
   .peer-strip::-webkit-scrollbar { display:none; }
   .peer-card { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 14px; background:var(--bg-card); border:1px solid var(--border); border-radius:4px; cursor:pointer; transition:all 0.2s; white-space:nowrap; min-width:80px; flex-shrink:0; }
   .peer-card:hover { border-color:var(--teal-dim); background:var(--bg-hover); }
@@ -289,12 +289,13 @@
       <div class="tab" onclick="switchTab('financials')">FINANCIALS</div>
       <div class="tab" onclick="switchTab('ai')">AI RESEARCH</div>
     </div>
+    <div class="peer-strip" id="peerStrip"></div>
     <div class="tab-content active" id="tab-overview">
       <div class="loading-state" id="overviewEmpty">
         <div class="loading-symbol">RESEARCH</div>
         <div>Load a symbol to view price history</div>
       </div>
-      <div id="overviewChart" style="display:none;flex:1;flex-direction:column;">
+      <div id="overviewChart" style="display:none;flex:1;flex-direction:column;overflow:hidden;">
         <div class="chart-area"><div id="tv-chart"></div></div>
         <div class="timeframe-bar">
           <button class="tf-btn" onclick="setTimeframe('1W')">1W</button>
@@ -313,7 +314,6 @@
           <div class="metric-cell"><div class="metric-cell-label">VS MA50</div><div class="metric-cell-value" id="mMa50">—</div></div>
         </div>
       </div>
-        <div class="peer-strip" id="peerStrip"></div>
     </div>
     <div class="tab-content" id="tab-financials">
       <div class="financials-content" id="financialsContent">
