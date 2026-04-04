@@ -38,7 +38,7 @@
   .search-bar {
     position:fixed; top:52px; left:0; right:0; z-index:99;
     background:var(--bg-panel); border-bottom:1px solid var(--border);
-    padding:10px 24px; display:flex; align-items:center; gap:12px;
+    padding:0 24px; display:flex; align-items:center; gap:12px; flex-wrap:nowrap; overflow:hidden; height:44px;
   }
   .search-label { font-family:var(--mono); font-size:15px; color:var(--text-dim); letter-spacing:0.1em; white-space:nowrap; }
   .symbol-input {
@@ -72,8 +72,24 @@
     letter-spacing:0.1em; color:var(--teal); cursor:pointer; transition:all 0.2s;
   }
   .btn-load:hover { background:var(--teal); color:var(--bg-deep); }
-  .quick-chips { display:flex; gap:6px; flex-wrap:wrap; }
-  .chip { font-family:var(--mono); font-size:15px; color:var(--text-secondary); border:1px solid var(--border); border-radius:3px; padding:4px 10px; cursor:pointer; transition:all 0.15s; }
+  .quick-chips { display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; flex:1; min-width:0; align-items:center; height:28px; }
+  .quick-chips::-webkit-scrollbar { display:none; }
+  .quick-chips { scroll-behavior:smooth; }
+  .chip-add-btn { font-family:var(--mono); font-size:16px; color:var(--text-dim); border:1px dashed var(--border); border-radius:3px; padding:4px 10px; cursor:pointer; background:none; transition:all 0.15s; flex-shrink:0; }
+  .chip-add-btn:hover { color:var(--teal); border-color:var(--teal-dim); }
+  .chip-browse { position:fixed; top:96px; left:24px; width:420px; max-height:400px; overflow-y:auto; background:var(--bg-panel); border:1px solid var(--border-bright); border-radius:6px; z-index:300; display:none; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+  .chip-browse.visible { display:block; }
+  .browse-group { padding:6px 0; border-bottom:1px solid var(--border); }
+  .browse-group:last-child { border-bottom:none; }
+  .browse-group-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); letter-spacing:0.15em; padding:4px 14px; }
+  .browse-item { display:flex; justify-content:space-between; align-items:center; padding:7px 14px; cursor:pointer; transition:background 0.15s; }
+  .browse-item:hover { background:var(--bg-hover); }
+  .browse-item-sym { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--teal); min-width:60px; }
+  .browse-item-name { font-family:var(--body); font-size:13px; color:var(--text-secondary); flex:1; padding:0 10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .browse-item-pin { font-size:14px; color:var(--text-dim); padding:2px 4px; border-radius:3px; }
+  .browse-item-pin:hover { color:var(--teal); }
+  .browse-item.pinned .browse-item-pin { color:var(--teal); }
+  .chip { font-family:var(--mono); font-size:12px; color:var(--text-secondary); border:1px solid var(--border); border-radius:3px; padding:3px 8px; cursor:pointer; transition:all 0.15s; white-space:nowrap; flex-shrink:0; }
   .chip:hover { color:var(--teal); border-color:var(--teal-dim); background:var(--teal-glow); }
   .company-header-bar { display:flex; align-items:center; gap:16px; margin-left:auto; font-family:var(--mono); font-size:15px; }
   .company-name-bar { color:var(--text-secondary); font-size:15px; }
@@ -209,19 +225,9 @@
     <div class="search-dropdown" id="researchDropdown"></div>
   </div>
   <button class="btn-load" onclick="loadSymbol()">LOAD</button>
-  <div class="quick-chips">
-    <div class="chip" onclick="setSymbol('AAPL')">AAPL</div>
-    <div class="chip" onclick="setSymbol('NVDA')">NVDA</div>
-    <div class="chip" onclick="setSymbol('MSFT')">MSFT</div>
-    <div class="chip" onclick="setSymbol('GOOGL')">GOOGL</div>
-    <div class="chip" onclick="setSymbol('TSLA')">TSLA</div>
-    <div class="chip" onclick="setSymbol('BTC')">BTC</div>
-    <div class="chip" onclick="setSymbol('ETH')">ETH</div>
-    <div class="chip" onclick="setSymbol('^GSPC')">S&amp;P 500</div>
-    <div class="chip" onclick="setSymbol('^IXIC')">NASDAQ</div>
-    <div class="chip" onclick="setSymbol('GOLD')">GOLD</div>
-    <div class="chip" onclick="setSymbol('EURUSD')">EUR/USD</div>
-  </div>
+  <div class="quick-chips" id="pinnedChips"></div>
+  <button class="chip-add-btn" id="chipAddBtn" title="Add symbol">＋</button>
+  <div class="chip-browse" id="chipBrowse"></div>
   <div class="company-header-bar" id="headerBar" style="display:none;">
     <span class="company-name-bar" id="headerName"></span>
     <span class="price-bar" id="headerPrice"></span>
@@ -423,14 +429,130 @@ function setSymbol(sym) {
   loadSymbol();
 }
 
-function updateActiveChip() {
-  document.querySelectorAll('.chip').forEach(c => {
-    const onclick = c.getAttribute('onclick') || '';
-    const match = onclick.match(/setSymbol\('([^']+)'\)/);
-    if (match) c.style.color = match[1] === currentSymbol ? 'var(--teal)' : '';
-    if (match) c.style.borderColor = match[1] === currentSymbol ? 'var(--teal-dim)' : '';
-    if (match) c.style.background = match[1] === currentSymbol ? 'var(--teal-glow)' : '';
+const DEFAULT_PINS = ["AAPL","NVDA","MSFT","GOOGL","TSLA","BTC","ETH","^GSPC","^IXIC","GOLD","EURUSD"];
+const PIN_KEY = "agora_pinned_chips";
+const ALL_SYMBOLS_EXTRA = [
+  {symbol:"^GSPC",name:"S&P 500",type:"index"},{symbol:"^IXIC",name:"NASDAQ",type:"index"},
+  {symbol:"^DJI",name:"Dow Jones",type:"index"},{symbol:"^RUT",name:"Russell 2000",type:"index"},
+  {symbol:"BTC",name:"Bitcoin",type:"crypto"},{symbol:"ETH",name:"Ethereum",type:"crypto"},
+  {symbol:"SOL",name:"Solana",type:"crypto"},
+  {symbol:"EURUSD",name:"EUR / USD",type:"forex"},{symbol:"GBPUSD",name:"GBP / USD",type:"forex"},
+  {symbol:"USDJPY",name:"USD / JPY",type:"forex"},
+  {symbol:"GOLD",name:"Gold",type:"commodity"},{symbol:"SILVER",name:"Silver",type:"commodity"},
+  {symbol:"OIL",name:"Crude Oil",type:"commodity"}
+];
+let allSymbols = [];
+let pinnedSymbols = JSON.parse(localStorage.getItem(PIN_KEY) || "null") || [...DEFAULT_PINS];
+
+function getPinnedLabel(sym) {
+  const found = allSymbols.find(s => s.symbol === sym) || ALL_SYMBOLS_EXTRA.find(s => s.symbol === sym);
+  if (found) return found.name || found.symbol;
+  const labels = {"^GSPC":"S&P 500","^IXIC":"NASDAQ","^DJI":"Dow Jones","^RUT":"Russell 2000","EURUSD":"EUR/USD","GBPUSD":"GBP/USD","USDJPY":"USD/JPY"};
+  return labels[sym] || sym;
+}
+
+function savePins() { localStorage.setItem(PIN_KEY, JSON.stringify(pinnedSymbols)); }
+
+function renderPinnedChips() {
+  const container = document.getElementById("pinnedChips");
+  if (container && !container._wheelSet) {
+    container._wheelSet = true;
+    container.addEventListener("wheel", e => { e.preventDefault(); container.scrollLeft += e.deltaY; }, {passive:false});
+  }
+  if (!container) return;
+  container.innerHTML = "";
+  pinnedSymbols.forEach(sym => {
+    const chip = document.createElement("div");
+    chip.className = "chip" + (sym === currentSymbol ? " active-chip" : "");
+    chip.textContent = sym === "^GSPC" ? "S&P 500" : sym === "^IXIC" ? "NASDAQ" : sym === "^DJI" ? "Dow Jones" : sym === "^RUT" ? "Russell 2000" : sym === "EURUSD" ? "EUR/USD" : sym === "GBPUSD" ? "GBP/USD" : sym === "USDJPY" ? "USD/JPY" : sym;
+    if (sym === currentSymbol) { chip.style.color="var(--teal)"; chip.style.borderColor="var(--teal-dim)"; chip.style.background="var(--teal-glow)"; }
+    chip.onclick = () => setSymbol(sym);
+    chip.oncontextmenu = (e) => { e.preventDefault(); pinnedSymbols = pinnedSymbols.filter(s => s !== sym); savePins(); renderPinnedChips(); };
+    container.appendChild(chip);
   });
+}
+
+function updateActiveChip() { renderPinnedChips(); }
+
+async function initBrowse() {
+  try {
+    const res = await fetch(API + "/api/chart/symbols");
+    const data = await res.json();
+    allSymbols = (data.symbols || []).filter(s => !ALL_SYMBOLS_EXTRA.find(e => e.symbol === s.symbol));
+  } catch(e) { allSymbols = []; }
+  renderPinnedChips();
+  setupBrowseDropdown();
+}
+
+function setupBrowseDropdown() {
+  const btn = document.getElementById("chipAddBtn");
+  const browse = document.getElementById("chipBrowse");
+  if (!btn || !browse) return;
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (browse.classList.contains("visible")) { browse.classList.remove("visible"); return; }
+    renderBrowseList("");
+    browse.classList.add("visible");
+  };
+
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#chipBrowse") && !e.target.closest("#chipAddBtn")) browse.classList.remove("visible");
+  });
+}
+
+function renderBrowseList(filter) {
+  const browse = document.getElementById("chipBrowse");
+  const q = filter.toLowerCase();
+  const groups = [
+    { label: "EQUITIES", items: allSymbols },
+    { label: "INDICES", items: ALL_SYMBOLS_EXTRA.filter(s => s.type === "index") },
+    { label: "CRYPTO", items: ALL_SYMBOLS_EXTRA.filter(s => s.type === "crypto") },
+    { label: "FOREX", items: ALL_SYMBOLS_EXTRA.filter(s => s.type === "forex") },
+    { label: "COMMODITIES", items: ALL_SYMBOLS_EXTRA.filter(s => s.type === "commodity") },
+  ];
+  let html = `<div style="padding:8px 14px 4px;"><input id="browseSearch" placeholder="Search..." style="width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:13px;color:var(--text-primary);outline:none;" /></div>`;
+  groups.forEach(g => {
+    const filtered = g.items.filter(s => !q || s.symbol.toLowerCase().includes(q) || (s.name||"").toLowerCase().includes(q));
+    if (!filtered.length) return;
+    html += `<div class="browse-group"><div class="browse-group-label">${g.label}</div>`;
+    filtered.forEach(s => {
+      const pinned = pinnedSymbols.includes(s.symbol);
+      html += `<div class="browse-item${pinned?" pinned":""}" data-sym="${s.symbol}">
+        <span class="browse-item-sym">${s.symbol}</span>
+        <span class="browse-item-name">${s.name||""}</span>
+        <span class="browse-item-pin" data-pin="${s.symbol}">${pinned?"★":"☆"}</span>
+      </div>`;
+    });
+    html += "</div>";
+  });
+  browse.innerHTML = html;
+
+  browse.querySelectorAll(".browse-item").forEach(el => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest(".browse-item-pin")) return;
+      setSymbol(el.dataset.sym);
+      browse.classList.remove("visible");
+    });
+  });
+
+  browse.querySelectorAll(".browse-item-pin").forEach(el => {
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const sym = el.dataset.pin;
+      if (pinnedSymbols.includes(sym)) {
+        pinnedSymbols = pinnedSymbols.filter(s => s !== sym);
+      } else {
+        pinnedSymbols.push(sym);
+      }
+      savePins();
+      renderPinnedChips();
+      renderBrowseList(document.getElementById("browseSearch")?.value || "");
+    });
+  });
+
+  const searchEl = document.getElementById("browseSearch");
+  if (searchEl) { searchEl.focus(); searchEl.addEventListener("input", () => renderBrowseList(searchEl.value)); }
 }
 
 async function loadSymbol() {
@@ -843,6 +965,7 @@ function signOut() { localStorage.removeItem('agora_token'); localStorage.remove
   if (user) { document.getElementById('user-nav').style.display = 'flex'; document.getElementById('user-email').textContent = user.email; }
   else { document.getElementById('signin-nav').style.display = 'block'; }
   initResearchSearch();
+  initBrowse();
   const params = new URLSearchParams(window.location.search);
   const sym = params.get('symbol');
   const aiQuery = params.get('ai');
