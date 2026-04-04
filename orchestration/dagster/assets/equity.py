@@ -8,7 +8,7 @@ import os
 import time
 import logging
 import requests
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timezone
 from dagster import asset, AssetExecutionContext, RetryPolicy, Backoff
 
 log = logging.getLogger("dagster.equity")
@@ -53,17 +53,17 @@ def fetch_yahoo_ohlcv(symbol: str, start_date: str) -> list[dict]:
                     continue
                 o = quotes.get("open", [None])[i]
                 h = quotes.get("high", [None])[i]
-                l = quotes.get("low", [None])[i]
+                low_val = quotes.get("low", [None])[i]
                 c = quotes.get("close", [None])[i]
                 v = quotes.get("volume", [None])[i]
-                if None in (o, h, l, c) or c <= 0:
+                if None in (o, h, low_val, c) or c <= 0:
                     continue
                 records.append({
                     "symbol": symbol,
                     "date": dt,
                     "open": round(float(o), 4),
                     "high": round(float(h), 4),
-                    "low": round(float(l), 4),
+                    "low": round(float(low_val), 4),
                     "close": round(float(c), 4),
                     "volume": int(v) if v else 0,
                     "vwap": None,
