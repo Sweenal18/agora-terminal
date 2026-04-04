@@ -171,6 +171,7 @@
   .neg { color:var(--red) !important; }
   .neu { color:var(--text-secondary) !important; }
 </style>
+<script src="../shared/gate.js"></script>
 </head><body>
 <nav class="nav">
   <div style="display:flex;align-items:center;gap:32px;">
@@ -666,6 +667,7 @@ async function loadChart(symbol) {
       setText('mClose', '$' + last.close.toFixed(2));
       setText('mVol', fmtVolume(last.volume));
     }
+      if (typeof agoraTrackAction === "function") agoraTrackAction();
   } catch(e) { console.error('Chart error', e); }
   new ResizeObserver(() => { if (tvChart) tvChart.resize(chartEl.offsetWidth, chartEl.offsetHeight); }).observe(chartEl);
 }
@@ -720,10 +722,12 @@ async function sendChat() {
       const data = await res.json();
       removeEl(thinkId);
       if (data.error) { appendMsg("ai", "Error: " + data.error); } else { appendMsg("ai", data.answer); }
+      if (typeof agoraTrackAction === "function") agoraTrackAction();
     } else {
       const res = await fetch(`${API}/api/ai/query`, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({question: contextQ}) });
       const data = await res.json(); removeEl(thinkId);
       if (data.error) { appendMsg("ai", "Error: " + data.error); } else { appendAIResult(data); }
+      if (typeof agoraTrackAction === "function") agoraTrackAction();
     }
   } catch(e) { removeEl(thinkId); appendMsg("ai", "Connection error — is the API running?"); }
   btn.disabled = false; input.focus();
