@@ -501,8 +501,9 @@ function setupBrowseDropdown() {
   });
 }
 
-function renderBrowseList(filter) {
+function renderBrowseList(filter, keepScroll) {
   const browse = document.getElementById("chipBrowse");
+  const scrollTop = keepScroll ? browse.scrollTop : 0;
   const q = filter.toLowerCase();
   const groups = [
     { label: "EQUITIES", items: allSymbols },
@@ -547,12 +548,16 @@ function renderBrowseList(filter) {
       }
       savePins();
       renderPinnedChips();
-      renderBrowseList(document.getElementById("browseSearch")?.value || "");
+      renderBrowseList(document.getElementById("browseSearch")?.value || "", true);
     });
   });
 
   const searchEl = document.getElementById("browseSearch");
-  if (searchEl) { searchEl.focus(); searchEl.addEventListener("input", () => renderBrowseList(searchEl.value)); }
+  browse.scrollTop = scrollTop;
+  if (searchEl) {
+    if (!keepScroll) searchEl.focus();
+    searchEl.addEventListener("input", () => renderBrowseList(searchEl.value, false));
+  }
 }
 
 async function loadSymbol() {
