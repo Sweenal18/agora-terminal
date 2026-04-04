@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Account — Agora Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg-deep:#050810; --bg-panel:#080D1A; --bg-card:#0C1221; --bg-hover:#111828; --border:#1A2540; --border-bright:#243050; --teal:#00D4AA; --teal-dim:#00856A; --teal-glow:rgba(0,212,170,0.15); --green:#00E676; --red:#FF3D5A; --text-primary:#E2E8F4; --text-secondary:#7A8BAD; --text-dim:#3D4F6E; --mono:'JetBrains Mono',monospace; --display:'Chakra Petch',sans-serif; --body:'IBM Plex Sans',sans-serif; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--body); min-height:100vh; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,212,170,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(5,8,16,0.97); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:52px; }
+  .logo { font-family:var(--display); font-size:18px; font-weight:700; letter-spacing:0.15em; color:var(--teal); text-shadow:0 0 20px rgba(0,212,170,0.5); cursor:pointer; }
+  .logo span { color:var(--text-secondary); font-weight:300; }
+  .nav-links { display:flex; gap:4px; }
+  .nav-link { font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:0.1em; color:var(--text-secondary); padding:6px 14px; border-radius:4px; cursor:pointer; text-decoration:none; transition:all 0.2s; border:1px solid transparent; }
+  .nav-link:hover { color:var(--text-primary); background:var(--bg-card); }
+  .main { max-width:680px; margin:0 auto; padding:80px 24px 60px; position:relative; z-index:1; }
+  .page-label { font-family:var(--mono); font-size:11px; letter-spacing:0.2em; color:var(--teal); margin-bottom:8px; }
+  .page-title { font-family:var(--display); font-size:1.5rem; font-weight:700; letter-spacing:0.05em; margin-bottom:32px; }
+  .card { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:16px; }
+  .card-header { padding:16px 20px; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:11px; letter-spacing:0.15em; color:var(--text-dim); }
+  .card-body { padding:20px; }
+  .field-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .field-row:last-child { border-bottom:none; }
+  .field-label { font-size:0.9rem; color:var(--text-secondary); }
+  .field-value { font-family:var(--mono); font-size:0.9rem; color:var(--text-primary); }
+  .plan-badge { font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:0.15em; color:var(--teal); background:var(--teal-glow); border:1px solid var(--teal-dim); border-radius:3px; padding:3px 10px; }
+  .avatar-circle { width:64px; height:64px; border-radius:50%; background:var(--teal-glow); border:2px solid var(--teal-dim); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:24px; font-weight:700; color:var(--teal); margin-bottom:16px; }
+  .signout-btn { width:100%; padding:10px; background:none; border:1px solid var(--border); border-radius:6px; color:var(--red); font-family:var(--display); font-size:13px; font-weight:600; letter-spacing:0.1em; cursor:pointer; transition:all 0.2s; margin-top:8px; }
+  .signout-btn:hover { background:rgba(255,61,90,0.1); border-color:var(--red); }
+  .back-link { font-family:var(--mono); font-size:12px; color:var(--text-dim); text-decoration:none; letter-spacing:0.05em; transition:color 0.2s; }
+  .back-link:hover { color:var(--teal); }
+  .coming-soon { font-family:var(--mono); font-size:11px; color:var(--text-dim); letter-spacing:0.1em; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div style="display:flex;align-items:center;gap:32px;">
+    <div class="logo" onclick="window.location.href='../market_overview/index.html'">AGORA <span>TERMINAL</span></div>
+    <div class="nav-links">
+      <a href="../market_overview/index.html" class="nav-link">OVERVIEW</a>
+      <a href="../research/index.html" class="nav-link">RESEARCH</a>
+      <a href="../screener/index.html" class="nav-link">SCREENER</a>
+      <a href="../portfolio/index.html" class="nav-link">PORTFOLIO</a>
+    </div>
+  </div>
+</nav>
+<div class="main">
+  <div class="page-label">ACCOUNT</div>
+  <div class="page-title">Your Profile</div>
+
+  <div class="card">
+    <div class="card-header">PROFILE</div>
+    <div class="card-body">
+      <div id="avatarCircle" class="avatar-circle">?</div>
+      <div class="field-row">
+        <span class="field-label">Email</span>
+        <span class="field-value" id="accountEmail">—</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Plan</span>
+        <span class="plan-badge" id="accountPlan">FREE</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Member since</span>
+        <span class="field-value" id="accountSince">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">USAGE</div>
+    <div class="card-body">
+      <div class="field-row">
+        <span class="field-label">AI queries this month</span>
+        <span class="coming-soon">COMING SOON</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Saved watchlists</span>
+        <span class="coming-soon">COMING SOON</span>
+      </div>
+      <div class="field-row">
+        <span class="field-label">Screener filters saved</span>
+        <span class="coming-soon">COMING SOON</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">DANGER ZONE</div>
+    <div class="card-body">
+      <button class="signout-btn" onclick="signOut()">SIGN OUT</button>
+    </div>
+  </div>
+
+  <br>
+  <a href="../research/index.html" class="back-link">← Back to Terminal</a>
+</div>
+
+<script>
+  function signOut() {
+    localStorage.removeItem('agora_token');
+    localStorage.removeItem('agora_user');
+    window.location.href = '../auth/index.html';
+  }
+
+  const user = JSON.parse(localStorage.getItem('agora_user') || 'null');
+  if (!user) {
+    window.location.href = '../auth/index.html';
+  } else {
+    document.getElementById('accountEmail').textContent = user.email;
+    document.getElementById('accountPlan').textContent = (user.plan || 'free').toUpperCase();
+    const initials = user.email.substring(0, 2).toUpperCase();
+    document.getElementById('avatarCircle').textContent = initials;
+    // Member since -- not stored in JWT, show account ID if available
+    if (user.id) document.getElementById('accountSince').textContent = 'Account #' + user.id;
+  }
+</script>
+</body>
+</html>
