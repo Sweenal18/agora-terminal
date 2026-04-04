@@ -6,7 +6,12 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import json
+import urllib.parse
+import httpx
 import psycopg2
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -174,10 +179,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.get("/me")
 def me(user: dict = Depends(require_user)):
     return user
-# --- Google OAuth ---
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "300776466538-8f4p3u97g82al2kn39d5vd77fpihqi65.apps.googleusercontent.com")
 
 class GoogleToken(BaseModel):
@@ -221,9 +222,6 @@ def google_login(data: GoogleToken):
             conn.close()
     except ValueError as e:
         raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
-# --- GitHub OAuth ---
-import httpx
-
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://agora-terminal.com")
@@ -282,7 +280,6 @@ def github_callback(code: str):
             timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
         )
         user_json = {"id": row[0], "email": row[1], "plan": row[2]}
-        import json, urllib.parse
         params = urllib.parse.urlencode({
             "token": jwt_token,
             "user": json.dumps(user_json)
