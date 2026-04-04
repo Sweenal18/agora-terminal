@@ -233,6 +233,9 @@ services:
       FRED_API_KEY: ${FRED_API_KEY:-}
       POLYGON_API_KEY: ${POLYGON_API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      FRONTEND_URL: ${FRONTEND_URL:-https://agora-terminal.com}
     volumes:
       - ../../transform/dbt:/app/transform/dbt
     restart: on-failure

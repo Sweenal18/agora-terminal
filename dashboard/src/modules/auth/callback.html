@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Agora Terminal — Signing in...</title>
+<style>
+  body { background: #0a0e1a; color: #e2e8f0; font-family: system-ui; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  .msg { text-align: center; }
+  .msg h2 { font-size: 1.2rem; font-weight: 500; margin-bottom: 0.5rem; }
+  .msg p { color: #64748b; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="msg">
+  <h2>Signing you in...</h2>
+  <p>Please wait while we complete authentication.</p>
+</div>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const user = params.get('user');
+  if (token && user) {
+    localStorage.setItem('agora_token', token);
+    localStorage.setItem('agora_user', user);
+    window.location.href = '../market_overview/index.html';
+  } else {
+    document.querySelector('h2').textContent = 'Sign-in failed';
+    document.querySelector('p').textContent = 'Could not complete GitHub authentication. Please try again.';
+    setTimeout(() => { window.location.href = '../auth/index.html'; }, 3000);
+  }
+</script>
+</body>
+</html>

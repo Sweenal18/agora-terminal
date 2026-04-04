@@ -174,3 +174,120 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.get("/me")
 def me(user: dict = Depends(require_user)):
     return user
+# --- Google OAuth ---
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "300776466538-8f4p3u97g82al2kn39d5vd77fpihqi65.apps.googleusercontent.com")
+
+class GoogleToken(BaseModel):
+    credential: str
+
+@router.post("/google", response_model=Token)
+def google_login(data: GoogleToken):
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            data.credential,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+        email = idinfo.get("email")
+        if not email:
+            raise HTTPException(status_code=400, detail="No email in Google token")
+        
+        conn = get_pg()
+        cur = conn.cursor()
+        try:
+            cur.execute("SELECT id, email, plan FROM users WHERE email = %s", (email.lower(),))
+            row = cur.fetchone()
+            if not row:
+                cur.execute(
+                    "INSERT INTO users (email, hashed_password, plan) VALUES (%s, %s, %s) RETURNING id, email, plan",
+                    (email.lower(), "google-oauth", "free")
+                )
+                row = cur.fetchone()
+                conn.commit()
+            token = create_token(
+                {"sub": row[1], "plan": row[2]},
+                timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+            )
+            return {
+                "access_token": token,
+                "token_type": "bearer",
+                "user": {"id": row[0], "email": row[1], "plan": row[2]},
+            }
+        finally:
+            cur.close()
+            conn.close()
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
+# --- GitHub OAuth ---
+import httpx
+
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://agora-terminal.com")
+
+@router.get("/github")
+def github_login():
+    from fastapi.responses import RedirectResponse
+    url = (
+        f"https://github.com/login/oauth/authorize"
+        f"?client_id={GITHUB_CLIENT_ID}"
+        f"&scope=user:email"
+    )
+    return RedirectResponse(url)
+
+@router.get("/github/callback")
+def github_callback(code: str):
+    from fastapi.responses import RedirectResponse
+    # Exchange code for token
+    resp = httpx.post(
+        "https://github.com/login/oauth/access_token",
+        json={"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET, "code": code},
+        headers={"Accept": "application/json"},
+        timeout=10,
+    )
+    token_data = resp.json()
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=400, detail="GitHub OAuth failed")
+
+    # Fetch user email
+    user_resp = httpx.get(
+        "https://api.github.com/user/emails",
+        headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+        timeout=10,
+    )
+    emails = user_resp.json()
+    email = next((e["email"] for e in emails if e.get("primary") and e.get("verified")), None)
+    if not email:
+        raise HTTPException(status_code=400, detail="No verified email on GitHub account")
+
+    # Upsert user
+    conn = get_pg()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id, email, plan FROM users WHERE email = %s", (email.lower(),))
+        row = cur.fetchone()
+        if not row:
+            cur.execute(
+                "INSERT INTO users (email, hashed_password, plan) VALUES (%s, %s, %s) RETURNING id, email, plan",
+                (email.lower(), "github-oauth", "free"),
+            )
+            row = cur.fetchone()
+            conn.commit()
+        jwt_token = create_token(
+            {"sub": row[1], "plan": row[2]},
+            timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        user_json = {"id": row[0], "email": row[1], "plan": row[2]}
+        import json, urllib.parse
+        params = urllib.parse.urlencode({
+            "token": jwt_token,
+            "user": json.dumps(user_json)
+        })
+        return RedirectResponse(f"{FRONTEND_URL}/auth/callback.html?{params}")
+    finally:
+        cur.close()
+        conn.close()

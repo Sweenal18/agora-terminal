@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Agora Terminal — Sign In</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root {
     --bg: #0a0e1a;
@@ -60,6 +61,8 @@
   .skip-link:hover { color: var(--teal); }
 
   .footer { text-align: center; padding: 20px; font-size: 11px; color: var(--text-dim); }
+  .github-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px; background: #24292e; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: background 0.2s; margin-bottom: 8px; }
+  .github-btn:hover { background: #3a3f47; }
 </style>
 </head>
 <body>
@@ -115,6 +118,23 @@
       </div>
       <button class="btn" onclick="register()">Create Account</button>
     </div>
+    <div class="divider">or continue with</div>
+    <div id="g_id_onload"
+      data-client_id="300776466538-8f4p3u97g82al2kn39d5vd77fpihqi65.apps.googleusercontent.com"
+      data-callback="handleGoogleLogin"
+      data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin"
+      data-type="standard"
+      data-size="large"
+      data-theme="filled_black"
+      data-text="sign_in_with"
+      data-shape="rectangular"
+      data-logo_alignment="left"
+      data-width="340">
+    </div>
+    <button class="github-btn" onclick="githubLogin()"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>Sign in with GitHub</button>
+    <div class="divider">or use email</div>
 
     <div class="divider">or</div>
     <a href="../market_overview/index.html" class="skip-link">Continue without signing in →</a>
@@ -221,6 +241,31 @@
   if (localStorage.getItem('agora_token')) {
     window.location.href = '../market_overview/index.html';
   }
+
+  function githubLogin() {
+    const API = window.location.hostname === "localhost" ? "http://localhost:8000" : "https://api.agora-terminal.com";
+    window.location.href = API + "/auth/github";
+  }
+</script>
+<script>
+async function handleGoogleLogin(response) {
+  const API = window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://api.agora-terminal.com';
+  try {
+    const res = await fetch(`${API}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const data = await res.json();
+    if (!res.ok) { showError(data.detail || 'Google sign-in failed.'); return; }
+    localStorage.setItem('agora_token', data.access_token);
+    localStorage.setItem('agora_user', JSON.stringify(data.user));
+    showSuccess('Signed in! Redirecting...');
+    setTimeout(() => { window.location.href = '../market_overview/index.html'; }, 800);
+  } catch(e) {
+    showError('Could not connect to server.');
+  }
+}
 </script>
 </body>
 </html>
