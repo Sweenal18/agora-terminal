@@ -1,4 +1,5 @@
 load_from:
-  - python_file:
-      relative_path: definitions.py
-      working_directory: /app
+  - grpc_server:
+      host: dagster-user-code
+      port: 4000
+      location_name: agora_pipeline

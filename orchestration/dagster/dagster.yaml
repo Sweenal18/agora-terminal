@@ -10,3 +10,6 @@ storage:
       db_name:
         env: DAGSTER_PG_DB
       port: 5432
+
+concurrency:
+  default_op_concurrency_limit: 1

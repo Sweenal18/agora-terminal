@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 .venv/
@@ -55,3 +55,14 @@ htmlcov/
 infra/docker/.env
 
 transform/dbt/agora.duckdb
+# dbt artifacts
+transform/dbt/agora/target/
+transform/dbt/agora.duckdb
+transform/dbt/*.duckdb
+
+# Large data files
+polygon_bronze.jsonl
+
+# Temp scripts
+check_*.py
+fix_*.py

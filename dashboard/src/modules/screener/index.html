@@ -222,7 +222,7 @@
 </div>
 
 <script>
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://140.245.250.232:8000';
 
 function fmt(n, decimals=2) {
   if (n === null || n === undefined) return '--';

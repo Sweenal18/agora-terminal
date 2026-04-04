@@ -113,6 +113,10 @@
   .chart-area { flex:1; position:relative; min-height:0; }
   #tv-chart { width:100%; height:100%; }
   .metrics-strip { display:grid; grid-template-columns:repeat(6,1fr); border-top:1px solid var(--border); background:var(--bg-panel); flex-shrink:0; }
+  .timeframe-bar { display:flex; gap:4px; padding:6px 12px; background:var(--bg-panel); border-bottom:1px solid var(--border); flex-shrink:0; }
+  .tf-btn { padding:3px 10px; font-size:11px; font-family:inherit; background:transparent; border:1px solid var(--border); color:var(--text-secondary); border-radius:3px; cursor:pointer; letter-spacing:0.05em; transition:all 0.15s; }
+  .tf-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .tf-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
   .metric-cell { padding:10px 14px; border-right:1px solid var(--border); text-align:center; }
   .metric-cell:last-child { border-right:none; }
   .metric-cell-label { font-family:var(--mono); font-size:15px; color:var(--text-dim); letter-spacing:0.1em; text-transform:uppercase; }
@@ -283,6 +287,14 @@
       </div>
       <div id="overviewChart" style="display:none;flex:1;flex-direction:column;">
         <div class="chart-area"><div id="tv-chart"></div></div>
+        <div class="timeframe-bar">
+          <button class="tf-btn" onclick="setTimeframe('1W')">1W</button>
+          <button class="tf-btn" onclick="setTimeframe('1M')">1M</button>
+          <button class="tf-btn" onclick="setTimeframe('3M')">3M</button>
+          <button class="tf-btn" onclick="setTimeframe('6M')">6M</button>
+          <button class="tf-btn active" onclick="setTimeframe('1Y')">1Y</button>
+          <button class="tf-btn" onclick="setTimeframe('MAX')">MAX</button>
+        </div>
         <div class="metrics-strip">
           <div class="metric-cell"><div class="metric-cell-label">OPEN</div><div class="metric-cell-value" id="mOpen">—</div></div>
           <div class="metric-cell"><div class="metric-cell-label">HIGH</div><div class="metric-cell-value pos" id="mHigh">—</div></div>
@@ -324,7 +336,7 @@
   </div>
 </div><script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <script>
-const API = 'http://localhost:8000';
+const API = window.location.hostname === 'localhost' ? 'http://localhost:8000' : 'http://140.245.250.232:8000';
 let currentSymbol = null;
 let currentInfo = null;
 let currentScreenData = null;
@@ -612,6 +624,16 @@ function populateFinancials(info, sd) {
     </div>`;
 }
 
+let currentTimeframe = '1Y';
+
+function setTimeframe(tf) {
+  currentTimeframe = tf;
+  document.querySelectorAll('.tf-btn').forEach(function(b) {
+    b.classList.toggle('active', b.textContent === tf);
+  });
+  if (currentSymbol) loadChart(currentSymbol);
+}
+
 async function loadChart(symbol) {
   document.getElementById('overviewEmpty').style.display = 'none';
   const wrap = document.getElementById('overviewChart');
@@ -632,7 +654,7 @@ async function loadChart(symbol) {
     wickUpColor: '#00E676', wickDownColor: '#FF3D5A',
   });
   try {
-    const res = await fetch(`${API}/api/chart/ohlcv/${symbol}?timeframe=1d&limit=365`);
+    const res = await fetch(`${API}/api/chart/ohlcv/${symbol}?timeframe=${currentTimeframe}&limit=2000`);
     const json = await res.json();
     if (json.data && json.data.length) {
       cs.setData(json.data);
