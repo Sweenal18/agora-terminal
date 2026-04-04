@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AGORA - Portfolio</title>
+<style>
+  :root { --bg-deep:#050810; --bg-panel:#080D1A; --bg-card:#0C1221; --border:#1A2540; --teal:#00D4AA; --teal-dim:#00856A; --teal-glow:rgba(0,212,170,0.15); --text-primary:#E2E8F4; --text-secondary:#7A8BAD; --text-dim:#3D4F6E; --mono:'JetBrains Mono',monospace; --display:'Chakra Petch',sans-serif; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-deep); color:var(--text-primary); font-family:'IBM Plex Sans',sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,212,170,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(5,8,16,0.97); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:52px; }
+  .logo { font-family:var(--display); font-size:18px; font-weight:700; letter-spacing:0.15em; color:var(--teal); text-shadow:0 0 20px rgba(0,212,170,0.5); }
+  .logo span { color:var(--text-secondary); font-weight:300; }
+  .nav-links { display:flex; gap:4px; }
+  .nav-link { font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:0.1em; color:var(--text-secondary); padding:6px 14px; border-radius:4px; cursor:pointer; text-decoration:none; transition:all 0.2s; border:1px solid transparent; }
+  .nav-link:hover { color:var(--text-primary); background:var(--bg-card); }
+  .nav-link.active { color:var(--teal); background:var(--teal-glow); border-color:var(--teal-dim); }
+  .main { flex:1; display:flex; align-items:center; justify-content:center; padding-top:52px; position:relative; z-index:1; }
+  .card { background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:3rem 4rem; text-align:center; max-width:520px; }
+  .icon { font-size:3rem; margin-bottom:1.5rem; }
+  .title { font-family:var(--display); font-size:1.5rem; font-weight:700; letter-spacing:0.1em; color:var(--teal); margin-bottom:0.75rem; }
+  .subtitle { color:var(--text-secondary); font-size:0.95rem; line-height:1.7; margin-bottom:2rem; }
+  .features { display:flex; flex-direction:column; gap:0.75rem; margin-bottom:2rem; text-align:left; }
+  .feature { display:flex; align-items:center; gap:0.75rem; color:var(--text-secondary); font-size:0.9rem; }
+  .feature-dot { width:6px; height:6px; border-radius:50%; background:var(--teal); flex-shrink:0; }
+  .back-btn { display:inline-block; background:var(--teal-glow); border:1px solid var(--teal-dim); border-radius:6px; padding:0.6rem 1.5rem; font-family:var(--display); font-size:0.85rem; font-weight:600; letter-spacing:0.1em; color:var(--teal); text-decoration:none; transition:all 0.2s; }
+  .back-btn:hover { background:var(--teal); color:var(--bg-deep); }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav class="nav">
+  <div class="logo">AGORA <span>TERMINAL</span></div>
+  <div class="nav-links">
+    <a href="../market_overview/index.html" class="nav-link">OVERVIEW</a>
+    <a href="../research/index.html" class="nav-link">RESEARCH</a>
+    <a href="../screener/index.html" class="nav-link">SCREENER</a>
+    <a href="../portfolio/index.html" class="nav-link active">PORTFOLIO</a>
+  </div>
+</nav>
+<div class="main">
+  <div class="card">
+    <div class="icon">📊</div>
+    <div class="title">PORTFOLIO TRACKER</div>
+    <div class="subtitle">Track your holdings, monitor performance, and get AI-powered insights on your portfolio — coming soon.</div>
+    <div class="features">
+      <div class="feature"><div class="feature-dot"></div>Real-time P&L tracking across all positions</div>
+      <div class="feature"><div class="feature-dot"></div>Sector allocation and concentration analysis</div>
+      <div class="feature"><div class="feature-dot"></div>AI-generated rebalancing suggestions</div>
+      <div class="feature"><div class="feature-dot"></div>Performance vs S&P 500 benchmark</div>
+      <div class="feature"><div class="feature-dot"></div>Dividend tracking and income calendar</div>
+    </div>
+    <a href="../research/index.html" class="back-btn">← BACK TO RESEARCH</a>
+  </div>
+</div>
+</body>
+</html>
