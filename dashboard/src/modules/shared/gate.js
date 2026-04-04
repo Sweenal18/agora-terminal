@@ -1,8 +1,8 @@
 // Soft gate — tracks free actions, prompts sign-up after limit
 (function() {
   const LIMIT = 3;
+  const RESHOW_AFTER = 2;
   const KEY = 'agora_action_count';
-  const DISMISSED_KEY = 'agora_gate_dismissed';
 
   function isLoggedIn() {
     return !!localStorage.getItem('agora_token');
@@ -28,17 +28,17 @@
     document.body.appendChild(modal);
     document.getElementById('agora-gate-dismiss').onclick = function() {
       modal.remove();
-      sessionStorage.setItem(DISMISSED_KEY, '1');
+      // Reset counter to LIMIT - RESHOW_AFTER so gate reappears after 2 more actions
+      localStorage.setItem(KEY, LIMIT - RESHOW_AFTER);
     };
   }
 
   window.agoraTrackAction = function() {
     if (isLoggedIn()) return;
-    if (sessionStorage.getItem(DISMISSED_KEY)) return;
     const count = getCount() + 1;
     localStorage.setItem(KEY, count);
     if (count >= LIMIT) {
-      setTimeout(showGate, 800);  // show after result renders
+      setTimeout(showGate, 800);
     }
   };
 })();
