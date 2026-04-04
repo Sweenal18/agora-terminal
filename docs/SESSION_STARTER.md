@@ -4,7 +4,7 @@
 
 ## What This Is
 
-Open source Bloomberg Terminal alternative. Free forever. All data sources are free.
+Financial intelligence platform. Bloomberg charges $24,000/year. We think that's wrong.
 
 - GitHub: github.com/Sweenal18/agora-terminal | License: Apache 2.0
 - Dashboard (local): http://localhost:8080/market_overview/index.html
@@ -25,14 +25,22 @@ Open source Bloomberg Terminal alternative. Free forever. All data sources are f
   - Chart Terminal [MERGED into Research Terminal]
   - Asset Screener [OK] (Gold layer, 16 columns, filters)
   - Research Terminal [OK] (3 tabs: Chart/Financials/AI Research, default AAPL, timeframe buttons 1W/1M/3M/6M/1Y/MAX)
-  - Nav consolidated [OK] (4 items: Overview/Research/Screener/Portfolio)
+  - Nav [OK] (4 items: Overview/Research/Screener/Portfolio)
   - Smart search in Overview [OK] (ticker -> Research chart, question -> AI tab)
   - Repo public [OK] (github.com/Sweenal18/agora-terminal)
   - GitHub Pages [OK] (agora-terminal.com, deployed via Actions)
   - Cloudflare Tunnel [OK] (permanent, runs as Windows service, api.agora-terminal.com)
   - Equity data automated [OK] (Dagster equity_daily fetches Yahoo Finance incrementally, appends to Bronze)
   - Dagster gRPC [OK] (dagster-user-code service, all 6 assets green, 5 schedules running)
-  - **Remaining:** Peer comparison strip, Portfolio nav (coming soon), dbt Gold automation, cloud migration
+  - Auth [OK] (JWT login, bcrypt, Google OAuth, GitHub OAuth)
+  - Soft gate [OK] (3 free actions, reappears after 2 more on dismiss, gate.js in shared/)
+  - Peer comparison strip [OK] (sector peers with weekly change, below OHLCV metrics bar)
+  - Dynamic pinned chip bar [OK] (localStorage, browse dropdown, pin/unpin with star, scroll)
+  - dbt Gold automated [OK] (Windows Task Scheduler, daily 06:00 IST, logs to scripts/dbt_gold.log)
+  - Portfolio page [OK] (coming soon placeholder at dashboard/src/modules/portfolio/)
+  - About page [OK] (dashboard/src/modules/about/)
+  - User menu [OK] (avatar initials dropdown: Account, About Agora, Sign Out -- all 3 nav files)
+  - **Remaining:** Account page, cloud migration (Oracle ARM A1 when available), hardcoding audit
 
 ---
 
@@ -52,22 +60,24 @@ Open source Bloomberg Terminal alternative. Free forever. All data sources are f
 
 | Module | Status | Notes |
 |---|---|---|
-| market_overview | Live | Smart search, heatmap working, real data |
-| research | Live | Default AAPL, 3 tabs, timeframe buttons, equities/indices/crypto/forex |
-| screener | Live | Gold layer, 16 cols, symbol click -> Research |
+| market_overview | Live | Smart search, heatmap, real data, user menu |
+| research | Live | 3 tabs, peer strip, pinned chip bar, user menu |
+| screener | Live | Gold layer, 16 cols, symbol click -> Research, user menu |
+| portfolio | Live | Coming soon placeholder |
+| about | Live | Product page, no price commitment |
+| auth | Live | JWT + Google OAuth + GitHub OAuth |
+| auth/callback | Live | GitHub OAuth callback handler |
 | chart | Redirect | Redirects to research/index.html |
 | ai_query | Redirect | Redirects to research/index.html |
-| auth | Live | JWT login, bcrypt passwords |
 
 ---
 
 ## Next Steps (in order)
 
-1. Add peer comparison strip to Research Terminal
-2. Replace Portfolio nav with Watchlist or Coming Soon
-3. Automate dbt Gold (currently manual after equity fetch)
-4. Sprint 5 cloud migration (Oracle ARM A1 when available)
-5. Make Cloudflare tunnel survive PC sleep/hibernate (currently survives reboot via service)
+1. Account page (user profile, plan info)
+2. Sprint 5 cloud migration (Oracle ARM A1 when available)
+3. Hardcoding audit (symbols, indices, forex hardcoded in research/index.html)
+4. Make Cloudflare tunnel survive PC sleep/hibernate
 
 ---
 
@@ -80,7 +90,18 @@ Open source Bloomberg Terminal alternative. Free forever. All data sources are f
 - Oracle server SSH: $keyPath = 'C:\Users\Sweetan Bandodkar\Downloads\ssh-key-2026-03-22.key'
 - SSH command: ssh -i $keyPath ubuntu@140.245.250.232 (slow, 1GB AMD micro, API only)
 - Cloudflare tunnel: Runs as Windows service (cloudflared), starts on boot automatically
-- dbt Gold (manual): dbt run --select tag:gold --profiles-dir transform\dbt --project-dir transform\dbt\agora
+- dbt Gold: Automated via Windows Task Scheduler at 06:00 IST daily. Script: scripts/run_dbt_gold.ps1. Log: scripts/dbt_gold.log. Manual: dbt run --select tag:gold --profiles-dir transform\dbt --project-dir transform\dbt\agora
+
+---
+
+## Auth & OAuth
+
+- JWT secret: JWT_SECRET_KEY in infra/docker/.env
+- Google OAuth Client ID: 300776466538-8f4p3u97g82al2kn39d5vd77fpihqi65.apps.googleusercontent.com
+- Google authorized origins: https://agora-terminal.com, http://localhost:8080
+- GitHub OAuth App: Client ID Ov23lia7gxDNXwoMfQyf, callback: https://api.agora-terminal.com/auth/github/callback
+- GITHUB_CLIENT_ID + GITHUB_CLIENT_SECRET in infra/docker/.env, wired into docker-compose.yml under api service
+- GitHub callback flow: /auth/github -> GitHub -> /auth/github/callback -> auth/callback.html -> localStorage -> market_overview
 
 ---
 
@@ -94,8 +115,7 @@ Open source Bloomberg Terminal alternative. Free forever. All data sources are f
 | data_quality_daily_schedule | 0 3 * * * | Run Great Expectations checks |
 | cdc_instruments_schedule | */15 * * * * | Consume Debezium CDC events |
 
-After equity_daily runs, manually run dbt Gold:
-`dbt run --select tag:gold --profiles-dir transform\dbt --project-dir transform\dbt\agora`
+dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_daily).
 
 ---
 
@@ -119,6 +139,9 @@ After equity_daily runs, manually run dbt Gold:
 - API URL: Auto-detects localhost vs production. localhost:8000 locally, api.agora-terminal.com in production
 - DuckDB is mounted via volume into API container -- changes to agora.duckdb on disk are immediately visible to API
 - Equity data: polygon_bronze.jsonl is NOT in git (gitignored). 54 symbols, data from 2024-03-15. Dagster appends new dates daily.
+- Soft gate: gate.js in dashboard/src/modules/shared/. Tracks actions in localStorage key agora_action_count. Limit=3, resets to 1 on dismiss.
+- User menu: toggleUserMenu() function in all 3 nav files. Avatar shows email initials. Menu has Account/About/Sign Out.
+- httpx==0.27.0 added to api/Dockerfile for GitHub OAuth backend calls.
 
 ---
 
@@ -142,6 +165,11 @@ After equity_daily runs, manually run dbt Gold:
 | GET /api/screener/screen | DuckDB Gold | Live (16 metrics, filters) |
 | GET /api/screener/sectors | DuckDB Gold | Live |
 | GET /api/screener/search | DuckDB Gold | Live (fuzzy search) |
+| POST /auth/register | PostgreSQL | Live |
+| POST /auth/login | PostgreSQL | Live |
+| POST /auth/google | Google OAuth | Live |
+| GET /auth/github | GitHub OAuth | Live (redirects to GitHub) |
+| GET /auth/github/callback | GitHub OAuth | Live (exchanges code, issues JWT) |
 
 ---
 
@@ -166,7 +194,7 @@ After equity_daily runs, manually run dbt Gold:
 - Cloudflare Tunnel for public API -- no exposed home IP, free, permanent, DDoS protected
 - agora-terminal.com served via GitHub Pages (dashboard) + Cloudflare Tunnel (API)
 - Dagster uses dagster-user-code gRPC server pattern (3 containers: webserver, daemon, user-code)
-- dbt Gold cannot run inside dagster-user-code (protobuf conflict with dagster 1.7.7 + dbt-core 1.11.7) -- run manually
+- dbt Gold cannot run inside dagster-user-code (protobuf conflict with dagster 1.7.7 + dbt-core 1.11.7) -- automated via Windows Task Scheduler instead
 - Oracle free tier kept as backup server -- API only, not primary
 - Dagster 1.7.7 with software-defined assets, daily schedules, GE standalone (no dagster-ge)
 - DuckDB for Silver -- in-process, reads Parquet, perfect for FastAPI container
@@ -175,3 +203,7 @@ After equity_daily runs, manually run dbt Gold:
 - Research Terminal is the unified module -- Chart Terminal and AI Query merged in
 - TradingView Lightweight Charts v4 (pinned, MIT) for charting
 - Non-equity symbols (indices, crypto, forex) use Yahoo Finance fallback in chart API
+- GitHub OAuth uses httpx for backend token exchange (requests also works, urllib gets 403)
+- Peer comparison strip uses /api/screener/screen?sector=X&limit=7, filters current symbol, shows 6 peers
+- Pinned chips stored in localStorage key agora_pinned_chips, defaults defined in DEFAULT_PINS array
+- About page copy: no "free forever" commitment, no open source mention -- "at a fraction of the cost" positioning
