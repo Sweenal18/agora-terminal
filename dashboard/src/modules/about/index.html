@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>About — Agora Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg-deep:#050810; --bg-panel:#080D1A; --bg-card:#0C1221; --bg-hover:#111828; --border:#1A2540; --border-bright:#243050; --teal:#00D4AA; --teal-dim:#00856A; --teal-glow:rgba(0,212,170,0.15); --green:#00E676; --red:#FF3D5A; --text-primary:#E2E8F4; --text-secondary:#7A8BAD; --text-dim:#3D4F6E; --mono:'JetBrains Mono',monospace; --display:'Chakra Petch',sans-serif; --body:'IBM Plex Sans',sans-serif; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg-deep); color:var(--text-primary); font-family:var(--body); min-height:100vh; }
+  body::before { content:''; position:fixed; inset:0; background-image:linear-gradient(rgba(0,212,170,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,170,0.03) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; z-index:0; }
+  .nav { position:fixed; top:0; left:0; right:0; z-index:100; background:rgba(5,8,16,0.97); backdrop-filter:blur(20px); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; height:52px; }
+  .logo { font-family:var(--display); font-size:18px; font-weight:700; letter-spacing:0.15em; color:var(--teal); text-shadow:0 0 20px rgba(0,212,170,0.5); }
+  .logo span { color:var(--text-secondary); font-weight:300; }
+  .nav-links { display:flex; gap:4px; }
+  .nav-link { font-family:var(--display); font-size:14px; font-weight:500; letter-spacing:0.1em; color:var(--text-secondary); padding:6px 14px; border-radius:4px; cursor:pointer; text-decoration:none; transition:all 0.2s; border:1px solid transparent; }
+  .nav-link:hover { color:var(--text-primary); background:var(--bg-card); }
+  .main { max-width:860px; margin:0 auto; padding:80px 24px 60px; position:relative; z-index:1; }
+  .hero { text-align:center; margin-bottom:64px; }
+  .hero-label { font-family:var(--mono); font-size:11px; letter-spacing:0.2em; color:var(--teal); margin-bottom:16px; }
+  .hero-title { font-family:var(--display); font-size:3rem; font-weight:700; letter-spacing:0.05em; margin-bottom:16px; line-height:1.1; }
+  .hero-title span { color:var(--teal); }
+  .hero-sub { color:var(--text-secondary); font-size:1.1rem; line-height:1.7; max-width:600px; margin:0 auto; }
+  .section { margin-bottom:48px; }
+  .section-label { font-family:var(--mono); font-size:11px; letter-spacing:0.2em; color:var(--teal); margin-bottom:12px; }
+  .section-title { font-family:var(--display); font-size:1.25rem; font-weight:600; letter-spacing:0.05em; margin-bottom:16px; }
+  .section-body { color:var(--text-secondary); line-height:1.8; font-size:0.95rem; }
+  .stat-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin-bottom:48px; }
+  .stat-cell { background:var(--bg-panel); padding:24px; text-align:center; }
+  .stat-value { font-family:var(--mono); font-size:2rem; font-weight:700; color:var(--teal); margin-bottom:6px; }
+  .stat-label { font-family:var(--mono); font-size:11px; letter-spacing:0.15em; color:var(--text-dim); }
+  .modules { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:48px; }
+  .module-card { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; padding:20px; }
+  .module-card:hover { border-color:var(--teal-dim); }
+  .module-icon { font-size:1.5rem; margin-bottom:10px; }
+  .module-name { font-family:var(--display); font-size:0.9rem; font-weight:600; letter-spacing:0.1em; color:var(--text-primary); margin-bottom:6px; }
+  .module-desc { font-size:0.85rem; color:var(--text-secondary); line-height:1.6; }
+  .back-btn { display:inline-block; background:var(--teal-glow); border:1px solid var(--teal-dim); border-radius:6px; padding:0.6rem 1.5rem; font-family:var(--display); font-size:0.85rem; font-weight:600; letter-spacing:0.1em; color:var(--teal); text-decoration:none; transition:all 0.2s; }
+  .back-btn:hover { background:var(--teal); color:var(--bg-deep); }
+  .divider { border:none; border-top:1px solid var(--border); margin:48px 0; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div style="display:flex;align-items:center;gap:32px;">
+    <div class="logo">AGORA <span>TERMINAL</span></div>
+    <div class="nav-links">
+      <a href="../market_overview/index.html" class="nav-link">OVERVIEW</a>
+      <a href="../research/index.html" class="nav-link">RESEARCH</a>
+      <a href="../screener/index.html" class="nav-link">SCREENER</a>
+      <a href="../portfolio/index.html" class="nav-link">PORTFOLIO</a>
+    </div>
+  </div>
+</nav>
+<div class="main">
+  <div class="hero">
+    <div class="hero-label">ABOUT AGORA TERMINAL</div>
+    <h1 class="hero-title">Institutional intelligence.<br><span>For everyone.</span></h1>
+    <p class="hero-sub">Bloomberg charges $24,000 a year. Agora Terminal is free. Same quality of financial intelligence — market data, fundamental research, AI-powered analysis — available to any person on earth, regardless of where they live or how much money they have.</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-cell">
+      <div class="stat-value">$0</div>
+      <div class="stat-label">COST TO USE</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value">57+</div>
+      <div class="stat-label">INSTRUMENTS TRACKED</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-value">9</div>
+      <div class="stat-label">MACRO SERIES</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">THE PROBLEM</div>
+    <div class="section-title">Financial intelligence has a gatekeeping problem.</div>
+    <div class="section-body">The tools that professional investors use every day — real-time data, fundamental screening, AI research assistants — cost tens of thousands of dollars per year. This creates a structural divide: large institutions get every edge, while retail investors, indie researchers, and analysts in emerging markets get price charts and headlines.<br><br>Agora Terminal exists to close that gap.</div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <div class="section-label">WHAT YOU GET</div>
+    <div class="section-title">A full financial intelligence platform.</div>
+    <div class="modules">
+      <div class="module-card">
+        <div class="module-icon">📊</div>
+        <div class="module-name">MARKET OVERVIEW</div>
+        <div class="module-desc">Live global market status, sector heatmap, macro pulse indicators, crypto and forex prices.</div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon">📈</div>
+        <div class="module-name">RESEARCH TERMINAL</div>
+        <div class="module-desc">Interactive charting, fundamental data, peer comparison, and AI-powered research on any asset.</div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon">🔍</div>
+        <div class="module-name">ASSET SCREENER</div>
+        <div class="module-desc">Filter the universe of assets by fundamentals, technicals, and valuation metrics in real time.</div>
+      </div>
+      <div class="module-card">
+        <div class="module-icon">🤖</div>
+        <div class="module-name">AI QUERY ENGINE</div>
+        <div class="module-desc">Ask any question in plain English. Get data-backed answers with full auditability — the query, the source, the timestamp.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <div class="section-label">THE MISSION</div>
+    <div class="section-body" style="font-size:1rem;font-style:italic;color:var(--text-primary);line-height:1.9;">"Linux did not beat Windows by being a better Windows. It made the question irrelevant by powering the entire internet underneath it. That is the model. That is the ambition."</div>
+  </div>
+
+  <a href="../research/index.html" class="back-btn">← BACK TO TERMINAL</a>
+</div>
+</body>
+</html>

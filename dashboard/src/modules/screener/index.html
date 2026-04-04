@@ -115,9 +115,25 @@
   </div>
   <div style="display:flex;align-items:center;gap:16px;">
     <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
-    <div id="user-nav" style="display:none;align-items:center;gap:10px;">
-      <span id="user-email" style="font-size:14px;color:var(--text-secondary);letter-spacing:0.05em;"></span>
-      <button onclick="signOut()" style="font-size:14px;font-weight:500;letter-spacing:0.1em;color:var(--text-secondary);background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;" onmouseover="this.style.color=`var(--teal)`;this.style.borderColor=`var(--teal-dim)`" onmouseout="this.style.color=`var(--text-secondary)`;this.style.borderColor=`var(--border)`">Sign Out</button>
+    <div id="user-nav" style="display:none;align-items:center;gap:10px;position:relative;">
+      <div id="user-avatar" onclick="toggleUserMenu()" style="width:32px;height:32px;border-radius:50%;background:var(--teal-glow);border:1px solid var(--teal-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:var(--mono);font-size:13px;font-weight:700;color:var(--teal);letter-spacing:0.05em;transition:all 0.2s;" onmouseover="this.style.background='var(--teal)';this.style.color='var(--bg-deep)'" onmouseout="this.style.background='var(--teal-glow)';this.style.color='var(--teal)'">?</div>
+      <div id="user-menu" style="display:none;position:fixed;top:56px;right:24px;background:var(--bg-panel);border:1px solid var(--border-bright);border-radius:8px;min-width:220px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text-dim);letter-spacing:0.1em;margin-bottom:2px;">SIGNED IN AS</div>
+          <div id="user-email" style="font-size:13px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--teal);margin-top:4px;">FREE PLAN</div>
+        </div>
+        <div onclick="window.location.href='../account/index.html'" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text-secondary);font-size:14px;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+          <span style="font-size:16px;">👤</span> Account
+        </div>
+        <div onclick="window.location.href='../about/index.html'" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--text-secondary);font-size:14px;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+          <span style="font-size:16px;">ℹ️</span> About Agora
+        </div>
+        <div style="border-top:1px solid var(--border);"></div>
+        <div onclick="signOut()" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--red);font-size:14px;transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+          <span style="font-size:16px;">🚪</span> Sign Out
+        </div>
+      </div>
     </div>
     <div id="signin-nav" style="display:none;">
       <a href="../auth/index.html" style="font-size:14px;font-weight:500;letter-spacing:0.1em;color:var(--teal);border:1px solid var(--teal-dim);border-radius:4px;padding:3px 10px;text-decoration:none;text-transform:uppercase;">Sign In</a>
@@ -357,6 +373,8 @@ init();
     if (user) {
       document.getElementById('user-nav').style.display = 'flex';
       document.getElementById('user-email').textContent = user.email;
+      const initials = user.email.substring(0,2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
     } else {
       document.getElementById('signin-nav').style.display = 'block';
     }
