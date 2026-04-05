@@ -310,6 +310,7 @@
       <div class="tab active" onclick="switchTab('overview')">CHART</div>
       <div class="tab" onclick="switchTab('financials')">FINANCIALS</div>
       <div class="tab" onclick="switchTab('ai')">AI RESEARCH</div>
+<div class="tab" onclick="switchTab('filings')">FILINGS</div>
     </div>
     <div class="peer-strip" id="peerStrip"></div>
     <div class="tab-content active" id="tab-overview">
@@ -365,6 +366,9 @@
         </div>
       </div>
     </div>
+    <div class="tab-content" id="tab-filings" style="padding:20px;overflow-y:auto;">
+  <div id="filings-list"><div style="color:var(--text-dim);font-family:var(--mono);font-size:15px;">Select a symbol to load filings.</div></div>
+</div>
   </div>
 </div><script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <script>
@@ -924,8 +928,35 @@ function appendThinking() {
 
 function removeEl(id) { const e = document.getElementById(id); if (e) e.remove(); }
 
+
+async function loadFilings(symbol) {
+  const el = document.getElementById("filings-list");
+  el.innerHTML = `<div style="color:var(--text-dim);font-family:var(--mono);font-size:15px;">Loading filings for ${symbol}...</div>`;
+  try {
+    const res = await fetch(`${API}/api/filings/${symbol}?forms=10-K,10-Q,8-K&limit=5`);
+    const data = await res.json();
+    if (!data.filings || data.filings.length === 0) {
+      el.innerHTML = `<div style="color:var(--text-dim);font-family:var(--mono);font-size:15px;">No filings found for ${symbol}.</div>`;
+      return;
+    }
+    el.innerHTML = data.filings.map(f => `
+      <div style="border:1px solid var(--border);border-radius:6px;padding:16px;margin-bottom:16px;background:var(--bg-panel);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <span style="font-family:var(--mono);font-size:13px;font-weight:700;color:var(--teal);background:rgba(0,188,212,0.1);padding:3px 8px;border-radius:4px;">${f.form}</span>
+          <span style="font-family:var(--mono);font-size:13px;color:var(--text-secondary);">${f.date}</span>
+          <a href="${f.edgar_url}" target="_blank" style="font-family:var(--mono);font-size:12px;color:var(--text-dim);text-decoration:none;margin-left:auto;" onmouseover="this.style.color='var(--teal)'" onmouseout="this.style.color='var(--text-dim)'">VIEW ON EDGAR ↗</a>
+        </div>
+        <div style="font-family:var(--sans,system-ui);font-size:14px;line-height:1.6;color:var(--text-primary);">${f.summary || "Summary unavailable."}</div>
+      </div>
+    `).join("");
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--text-dim);font-family:var(--mono);font-size:15px;">Error loading filings: ${e.message}</div>`;
+  }
+}
+
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['overview','financials','ai'][i] === name));
+  if (name === 'filings' && currentSymbol) loadFilings(currentSymbol);
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['overview','financials','ai','filings'][i] === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'overview' && tvChart) {
