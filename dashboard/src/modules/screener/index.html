@@ -395,6 +395,16 @@ init();
       document.getElementById('signin-nav').style.display = 'block';
     }
   })();
+function toggleUserMenu() {
+  const menu = document.getElementById('user-menu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#user-avatar') && !e.target.closest('#user-menu')) {
+    const menu = document.getElementById('user-menu');
+    if (menu) menu.style.display = 'none';
+  }
+});
 </script>
 </body>
 </html>
