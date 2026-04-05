@@ -3,7 +3,6 @@ Fundamentals asset -- fetches FMP data for S&P 500 and writes to DuckDB silver l
 Schema matches ingestion/fetchers/fundamentals.py exactly.
 """
 import os
-import sys
 import time
 import logging
 import requests
