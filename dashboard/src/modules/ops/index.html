@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGORA OPS</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050810; --bg-panel: #080D1A; --bg-card: #0C1221; --bg-hover: #111828;
+    --border: #1A2540; --border-bright: #243050;
+    --teal: #00D4AA; --teal-dim: #00856A; --teal-glow: rgba(0,212,170,0.1);
+    --green: #00E676; --red: #FF3D5A; --amber: #FFB300; --blue: #4FC3F7;
+    --text-primary: #E2E8F4; --text-secondary: #7A8BAD; --text-dim: #3D4F6E;
+    --mono: 'JetBrains Mono', monospace; --display: 'Chakra Petch', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text-primary); font-family:var(--mono); min-height:100vh; }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: linear-gradient(rgba(0,212,170,0.02) 1px,transparent 1px), linear-gradient(90deg,rgba(0,212,170,0.02) 1px,transparent 1px);
+    background-size:40px 40px; pointer-events:none; z-index:0;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border); padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: rgba(5,8,16,0.95);
+    backdrop-filter: blur(20px); z-index: 100;
+  }
+  .logo { font-family: var(--display); font-size: 20px; font-weight: 700; letter-spacing: 0.2em; color: var(--teal); }
+  .logo span { color: var(--text-dim); font-weight: 300; font-size: 14px; margin-left: 8px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .time { font-size: 12px; color: var(--text-dim); letter-spacing: 0.1em; }
+  .btn-refresh {
+    background: var(--teal-glow); border: 1px solid var(--teal-dim); border-radius: 4px;
+    padding: 6px 14px; font-family: var(--display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; color: var(--teal); cursor: pointer; transition: all 0.2s;
+  }
+  .btn-refresh:hover { background: var(--teal); color: var(--bg); }
+
+  .main { padding: 24px; position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .section { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .section-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-title { font-family: var(--display); font-size: 11px; font-weight: 600; letter-spacing: 0.15em; color: var(--text-dim); text-transform: uppercase; }
+  .section-badge { font-size: 10px; color: var(--text-dim); letter-spacing: 0.05em; }
+
+  /* Service rows */
+  .service-row {
+    display: grid; grid-template-columns: 10px 1fr auto auto;
+    align-items: center; gap: 12px; padding: 10px 16px;
+    border-bottom: 1px solid var(--border); transition: background 0.15s;
+  }
+  .service-row:last-child { border-bottom: none; }
+  .service-row:hover { background: var(--bg-hover); }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-checking { background: var(--text-dim); animation: blink 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .service-info { min-width: 0; }
+  .service-name { font-size: 12px; font-weight: 600; color: var(--text-primary); letter-spacing: 0.05em; }
+  .service-url { font-size: 11px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .service-url a { color: var(--teal-dim); text-decoration: none; transition: color 0.2s; }
+  .service-url a:hover { color: var(--teal); }
+
+  .service-latency { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  .latency-ok { color: var(--green); }
+  .latency-slow { color: var(--amber); }
+
+  .btn-open {
+    background: transparent; border: 1px solid var(--border); border-radius: 3px;
+    padding: 3px 10px; font-family: var(--mono); font-size: 10px; color: var(--text-secondary);
+    cursor: pointer; transition: all 0.2s; white-space: nowrap; text-decoration: none; display: inline-block;
+  }
+  .btn-open:hover { border-color: var(--teal-dim); color: var(--teal); }
+
+  /* Command blocks */
+  .cmd-section { grid-column: 1 / -1; }
+  .cmd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .cmd-group { padding: 16px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .cmd-group:nth-child(even) { border-right: none; }
+  .cmd-group:nth-last-child(-n+2) { border-bottom: none; }
+  .cmd-label { font-family: var(--display); font-size: 10px; font-weight: 600; letter-spacing: 0.15em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .cmd-block {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 10px 12px; font-size: 11px; color: var(--teal); line-height: 1.6;
+    cursor: pointer; transition: border-color 0.2s; position: relative;
+  }
+  .cmd-block:hover { border-color: var(--teal-dim); }
+  .cmd-block .copy-hint {
+    position: absolute; top: 6px; right: 8px; font-size: 9px;
+    color: var(--text-dim); letter-spacing: 0.1em; opacity: 0; transition: opacity 0.2s;
+  }
+  .cmd-block:hover .copy-hint { opacity: 1; }
+  .cmd-comment { color: var(--text-dim); }
+
+  /* API endpoints */
+  .api-section { grid-column: 1 / -1; }
+  .api-table { width: 100%; border-collapse: collapse; }
+  .api-table th {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.15em; color: var(--text-dim);
+    text-transform: uppercase; padding: 8px 16px; text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .api-table td { font-size: 11px; padding: 8px 16px; border-bottom: 1px solid var(--border); }
+  .api-table tr:last-child td { border-bottom: none; }
+  .api-table tr:hover td { background: var(--bg-hover); }
+  .method { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 2px 6px; border-radius: 3px; }
+  .method-get { background: rgba(0,230,118,0.1); color: var(--green); }
+  .method-post { background: rgba(79,195,247,0.1); color: var(--blue); }
+  .endpoint { color: var(--teal); }
+  .ep-source { color: var(--text-dim); font-size: 10px; }
+  .ep-status-ok { color: var(--green); }
+  .ep-status-issue { color: var(--red); }
+
+  .copied-toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--teal); color: var(--bg);
+    font-family: var(--display); font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    padding: 8px 16px; border-radius: 4px; opacity: 0; transition: opacity 0.3s; z-index: 999;
+  }
+  .copied-toast.show { opacity: 1; }
+
+  .known-issues { grid-column: 1 / -1; }
+  .issue-row { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
+  .issue-row:last-child { border-bottom: none; }
+  .issue-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; padding: 2px 8px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+  .tag-cloud { background: rgba(79,195,247,0.1); color: var(--blue); }
+  .tag-local { background: rgba(255,179,0,0.1); color: var(--amber); }
+  .tag-data { background: rgba(255,61,90,0.1); color: var(--red); }
+  .issue-text { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">AGORA <span>OPS DASHBOARD</span></div>
+  </div>
+  <div class="header-right">
+    <div class="time" id="clock">--:--:-- UTC</div>
+    <button class="btn-refresh" onclick="checkAll()">REFRESH STATUS</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LOCAL SERVICES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Local Services</div>
+      <div class="section-badge">localhost</div>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-api-local"></div>
+      <div class="service-info">
+        <div class="service-name">FastAPI</div>
+        <div class="service-url"><a href="http://localhost:8000/docs" target="_blank">localhost:8000</a></div>
+      </div>
+      <div class="service-latency" id="lat-api-local">--</div>
+      <a class="btn-open" href="http://localhost:8000/docs" target="_blank">OPEN</a>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-dagster"></div>
+      <div class="service-info">
+        <div class="service-name">Dagster</div>
+        <div class="service-url"><a href="http://localhost:3000" target="_blank">localhost:3000</a></div>
+      </div>
+      <div class="service-latency" id="lat-dagster">--</div>
+      <a class="btn-open" href="http://localhost:3000" target="_blank">OPEN</a>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-questdb"></div>
+      <div class="service-info">
+        <div class="service-name">QuestDB</div>
+        <div class="service-url"><a href="http://localhost:9002" target="_blank">localhost:9002</a></div>
+      </div>
+      <div class="service-latency" id="lat-questdb">--</div>
+      <a class="btn-open" href="http://localhost:9002" target="_blank">OPEN</a>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-minio"></div>
+      <div class="service-info">
+        <div class="service-name">MinIO</div>
+        <div class="service-url"><a href="http://localhost:9001" target="_blank">localhost:9001</a></div>
+      </div>
+      <div class="service-latency" id="lat-minio">--</div>
+      <a class="btn-open" href="http://localhost:9001" target="_blank">OPEN</a>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-dashboard"></div>
+      <div class="service-info">
+        <div class="service-name">Dashboard</div>
+        <div class="service-url"><a href="http://localhost:8080/market_overview/index.html" target="_blank">localhost:8080</a></div>
+      </div>
+      <div class="service-latency" id="lat-dashboard">--</div>
+      <a class="btn-open" href="http://localhost:8080/market_overview/index.html" target="_blank">OPEN</a>
+    </div>
+  </div>
+
+  <!-- PUBLIC SERVICES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Public Services</div>
+      <div class="section-badge">production</div>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-api-public"></div>
+      <div class="service-info">
+        <div class="service-name">API (Cloudflare Tunnel)</div>
+        <div class="service-url"><a href="https://api.agora-terminal.com/health" target="_blank">api.agora-terminal.com</a></div>
+      </div>
+      <div class="service-latency" id="lat-api-public">--</div>
+      <a class="btn-open" href="https://api.agora-terminal.com/health" target="_blank">OPEN</a>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-dashboard-public"></div>
+      <div class="service-info">
+        <div class="service-name">Dashboard (GitHub Pages)</div>
+        <div class="service-url"><a href="https://agora-terminal.com" target="_blank">agora-terminal.com</a></div>
+      </div>
+      <div class="service-latency" id="lat-dashboard-public">--</div>
+      <a class="btn-open" href="https://agora-terminal.com" target="_blank">OPEN</a>
+    </div>
+    <div class="service-row">
+      <div class="status-dot dot-checking" id="dot-github"></div>
+      <div class="service-info">
+        <div class="service-name">GitHub Repo</div>
+        <div class="service-url"><a href="https://github.com/Sweenal18/agora-terminal" target="_blank">github.com/Sweenal18/agora-terminal</a></div>
+      </div>
+      <div class="service-latency" id="lat-github">--</div>
+      <a class="btn-open" href="https://github.com/Sweenal18/agora-terminal" target="_blank">OPEN</a>
+    </div>
+  </div>
+
+  <!-- START COMMANDS -->
+  <div class="section cmd-section">
+    <div class="section-header">
+      <div class="section-title">Start Commands</div>
+      <div class="section-badge">click to copy</div>
+    </div>
+    <div class="cmd-grid">
+      <div class="cmd-group">
+        <div class="cmd-label">Start Full Stack</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          <span class="cmd-comment"># From project root</span><br>
+          cd C:\Projects\agora-terminal\agora-terminal<br>
+          docker compose -f infra/docker/docker-compose.yml up -d
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">Start Dashboard</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          Start-Job -ScriptBlock { Set-Location "C:\Projects\agora-terminal\agora-terminal\dashboard\src\modules"; python -m http.server 8080 }
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">Restart API</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          <span class="cmd-comment"># NEVER use docker restart (loses env vars)</span><br>
+          docker compose -f infra/docker/docker-compose.yml up -d --no-deps --force-recreate api
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">Rebuild + Restart API</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          docker compose -f infra/docker/docker-compose.yml build api<br>
+          docker compose -f infra/docker/docker-compose.yml up -d --no-deps --force-recreate api
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">Start Binance Producer</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          cd C:\Projects\agora-terminal\agora-terminal<br>
+          python -m ingestion.producers.binance.producer
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">Run dbt Gold</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          cd C:\Projects\agora-terminal\agora-terminal<br>
+          docker compose -f infra/docker/docker-compose.yml --profile dbt run --rm dbt run --project-dir transform/dbt/agora --profiles-dir transform/dbt --select tag:gold
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">Restart Cloudflare Tunnel (Admin PS)</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          <span class="cmd-comment"># Run as Administrator</span><br>
+          Stop-Service Cloudflared -Force<br>
+          Start-Sleep -Seconds 3<br>
+          Start-Service Cloudflared
+        </div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-label">SSH to Oracle Server</div>
+        <div class="cmd-block" onclick="copyCmd(this)">
+          <span class="copy-hint">CLICK TO COPY</span>
+          $keyPath = 'C:\Users\Sweetan Bandodkar\Downloads\ssh-key-2026-03-22.key'<br>
+          ssh -i $keyPath ubuntu@140.245.250.232
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KNOWN ISSUES -->
+  <div class="section known-issues">
+    <div class="section-header">
+      <div class="section-title">Known Issues</div>
+      <div class="section-badge">needs cloud deployment</div>
+    </div>
+    <div class="issue-row">
+      <div class="issue-tag tag-cloud">CLOUD</div>
+      <div class="issue-text">Binance WebSocket producer not running — crypto data stale since Apr 2. Needs 24/7 cloud deployment (Oracle ARM A1 or Hetzner CAX21 €6.49/mo).</div>
+    </div>
+    <div class="issue-row">
+      <div class="issue-tag tag-cloud">CLOUD</div>
+      <div class="issue-text">kafka-connect (Debezium CDC) and schema-registry are down — CDC pipeline not running. Same cloud deployment dependency.</div>
+    </div>
+    <div class="issue-row">
+      <div class="issue-tag tag-data">DATA</div>
+      <div class="issue-text">Crypto/commodity change % showing 0% on dashboard — symptom of streaming pipeline being down locally.</div>
+    </div>
+    <div class="issue-row">
+      <div class="issue-tag tag-local">LOCAL</div>
+      <div class="issue-text">18 orphan docker-dbt-run-* containers. Clean up with: docker compose -f infra/docker/docker-compose.yml up --remove-orphans</div>
+    </div>
+    <div class="issue-row">
+      <div class="issue-tag tag-data">DATA</div>
+      <div class="issue-text">silver_equity_ohlcv_daily only has 54 symbols — 448 symbols in fct_prices are stale. OHLCV fetcher needs expansion to full S&P 500.</div>
+    </div>
+  </div>
+
+  <!-- API ENDPOINTS -->
+  <div class="section api-section">
+    <div class="section-header">
+      <div class="section-title">API Endpoints</div>
+      <div class="section-badge">localhost:8000</div>
+    </div>
+    <table class="api-table">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Source</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/health</td><td class="ep-source">Internal</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/crypto/prices</td><td class="ep-source">QuestDB</td><td class="ep-status-issue">change% = 0 (streaming down)</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/crypto/ohlcv/{symbol}</td><td class="ep-source">QuestDB</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/equity/symbols</td><td class="ep-source">DuckDB Silver</td><td class="ep-status-ok">Live (54 symbols)</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/equity/ohlcv/{symbol}</td><td class="ep-source">DuckDB Silver</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/equity/indices</td><td class="ep-source">Yahoo Finance</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/macro/pulse</td><td class="ep-source">FRED API</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/macro/forex</td><td class="ep-source">Yahoo Finance</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/macro/commodities</td><td class="ep-source">Yahoo Finance</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-post">POST</span></td><td class="endpoint">/api/ai/query</td><td class="ep-source">Groq + DuckDB Gold</td><td class="ep-status-ok">Live (~1.5s)</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/chart/ohlcv/{symbol}</td><td class="ep-source">DuckDB / Yahoo</td><td class="ep-status-ok">Live (1W/1M/3M/6M/1Y/MAX)</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/chart/info/{symbol}</td><td class="ep-source">DuckDB Gold</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/chart/symbols</td><td class="ep-source">DuckDB Silver</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/screener/screen</td><td class="ep-source">DuckDB Gold</td><td class="ep-status-ok">Live (debt_to_equity, FCF yield added)</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/screener/sectors</td><td class="ep-source">DuckDB Gold</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/api/screener/search</td><td class="ep-source">DuckDB Gold</td><td class="ep-status-ok">Live (fuzzy search)</td></tr>
+        <tr><td><span class="method method-post">POST</span></td><td class="endpoint">/auth/register</td><td class="ep-source">PostgreSQL</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-post">POST</span></td><td class="endpoint">/auth/login</td><td class="ep-source">PostgreSQL</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-post">POST</span></td><td class="endpoint">/auth/google</td><td class="ep-source">Google OAuth</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/auth/github</td><td class="ep-source">GitHub OAuth</td><td class="ep-status-ok">Live</td></tr>
+        <tr><td><span class="method method-get">GET</span></td><td class="endpoint">/auth/github/callback</td><td class="ep-source">GitHub OAuth</td><td class="ep-status-ok">Live</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="copied-toast" id="toast">COPIED</div>
+
+<script>
+function updateClock() {
+  const now = new Date();
+  const utc = now.toUTCString().split(' ')[4];
+  document.getElementById('clock').textContent = utc + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+async function checkEndpoint(url, dotId, latId) {
+  const dot = document.getElementById(dotId);
+  const lat = document.getElementById(latId);
+  const start = Date.now();
+  try {
+    await fetch(url, { mode: 'no-cors', cache: 'no-cache' });
+    const ms = Date.now() - start;
+    dot.className = 'status-dot dot-green';
+    lat.textContent = ms + 'ms';
+    lat.className = 'service-latency ' + (ms < 500 ? 'latency-ok' : 'latency-slow');
+  } catch(e) {
+    dot.className = 'status-dot dot-red';
+    lat.textContent = 'down';
+    lat.className = 'service-latency';
+  }
+}
+
+async function checkAll() {
+  const checks = [
+    ['http://localhost:8000/health', 'dot-api-local', 'lat-api-local'],
+    ['http://localhost:3000', 'dot-dagster', 'lat-dagster'],
+    ['http://localhost:9002', 'dot-questdb', 'lat-questdb'],
+    ['http://localhost:9001', 'dot-minio', 'lat-minio'],
+    ['http://localhost:8080', 'dot-dashboard', 'lat-dashboard'],
+    ['https://api.agora-terminal.com/health', 'dot-api-public', 'lat-api-public'],
+    ['https://agora-terminal.com', 'dot-dashboard-public', 'lat-dashboard-public'],
+    ['https://github.com/Sweenal18/agora-terminal', 'dot-github', 'lat-github'],
+  ];
+  for (const [url, dotId, latId] of checks) {
+    document.getElementById(dotId).className = 'status-dot dot-checking';
+    document.getElementById(latId).textContent = '...';
+  }
+  await Promise.all(checks.map(([url, dotId, latId]) => checkEndpoint(url, dotId, latId)));
+}
+
+function copyCmd(el) {
+  const text = el.innerText.replace('CLICK TO COPY', '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  });
+}
+
+checkAll();
+setInterval(checkAll, 30000);
+</script>
+</body>
+</html>
