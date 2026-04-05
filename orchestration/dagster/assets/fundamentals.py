@@ -3,6 +3,7 @@ Fundamentals asset -- fetches FMP data for S&P 500 and writes to DuckDB silver l
 Schema matches ingestion/fetchers/fundamentals.py exactly.
 """
 import os
+import sys
 import time
 import logging
 import requests
@@ -16,13 +17,7 @@ FMP_API_KEY  = os.getenv("FMP_API_KEY", "")
 FMP_BASE     = "https://financialmodelingprep.com/stable"
 DUCKDB_PATH  = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
 
-SYMBOLS = [
-    "AAPL","MSFT","NVDA","AMZN","META","GOOGL","BRK-B","LLY","V","XOM",
-    "UNH","JPM","JNJ","WMT","MA","PG","HD","COST","AVGO","MRK",
-    "CVX","ABBV","KO","PEP","BAC","TMO","CSCO","ACN","CRM","LIN",
-    "MCD","ABT","TXN","NKE","DHR","PM","NEE","RTX","ORCL","QCOM",
-    "INTC","INTU","AMD","AMGN","SPGI","UPS","GS","MS","BLK","BSX",
-]
+# Symbols are loaded dynamically from the database at runtime
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
@@ -128,6 +123,16 @@ def silver_equity_fundamentals(context: AssetExecutionContext):
     conn = duckdb.connect(DUCKDB_PATH)
     create_table(conn)
     success = 0
+
+    # Load symbol universe dynamically from DB -- single source of truth
+    try:
+        SYMBOLS = [r[0] for r in conn.execute(
+            "SELECT DISTINCT symbol FROM main.silver_equity_ohlcv_daily ORDER BY symbol"
+        ).fetchall()]
+        context.log.info(f"Loaded {len(SYMBOLS)} symbols from silver_equity_ohlcv_daily")
+    except Exception as e:
+        context.log.warning(f"Could not load symbols from DB: {e}. Falling back to empty list.")
+        SYMBOLS = []
 
     for i, symbol in enumerate(SYMBOLS):
         context.log.info(f"[{i+1}/{len(SYMBOLS)}] Fetching {symbol}")

@@ -594,12 +594,12 @@ async function loadSymbol() {
 
   const [infoRes, screenRes] = await Promise.allSettled([
     fetch(`${API}/api/chart/info/${raw}`).then(r => r.json()),
-    fetch(`${API}/api/screener/screen?limit=200`).then(r => r.json()),
+    fetch(`${API}/api/screener/screen?symbol=${raw}&limit=1`).then(r => r.json()),
   ]);
 
   const info = infoRes.status === 'fulfilled' ? infoRes.value : null;
   const sd = screenRes.status === 'fulfilled'
-    ? (screenRes.value.data || []).find(d => d.symbol === raw) : null;
+    ? ((screenRes.value.data || [])[0] || null) : null;
 
   currentInfo = info;
   currentScreenData = sd;
