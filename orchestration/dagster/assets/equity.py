@@ -1,6 +1,8 @@
 """
 Equity asset -- fetches missing OHLCV from Yahoo Finance and rebuilds Silver table.
-Incremental: only fetches dates after the latest date in polygon_bronze.jsonl.
+Incremental per symbol: fetches dates after the latest date for each symbol in Silver.
+Symbol list is data-driven from dim_instruments (is_current = TRUE, asset_class = equity).
+New symbols added to dim_instruments are automatically picked up on next run.
 """
 import duckdb
 import json
@@ -16,18 +18,36 @@ log = logging.getLogger("dagster.equity")
 DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
 BRONZE_FILE = os.getenv("BRONZE_FILE", "/app/polygon_bronze.jsonl")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+DEFAULT_START = "2024-01-01"
 
-def get_symbols_and_latest_date(bronze_file: str) -> tuple[list[str], str]:
-    """Read Bronze file to get symbol list and latest date."""
-    symbols = set()
-    latest = "2020-01-01"
-    with open(bronze_file) as f:
-        for line in f:
-            rec = json.loads(line)
-            symbols.add(rec["symbol"])
-            if rec["date"] > latest:
-                latest = rec["date"]
-    return sorted(symbols), latest
+def get_symbols_and_latest_dates() -> tuple[list[str], dict[str, str]]:
+    """
+    Read symbol list from dim_instruments (data-driven, automatic for new symbols).
+    Get latest date per symbol from silver_equity_ohlcv_daily for incremental fetch.
+    Falls back to DEFAULT_START for symbols with no existing Silver data.
+    """
+    conn = duckdb.connect(DUCKDB_PATH, read_only=True)
+    try:
+        symbols = [
+            r[0] for r in conn.execute("""
+                SELECT DISTINCT symbol
+                FROM agora.main_gold.dim_instruments
+                WHERE is_current = TRUE
+                  AND asset_class = 'equity'
+                ORDER BY symbol
+            """).fetchall()
+        ]
+        latest_dates = {
+            r[0]: r[1].strftime("%Y-%m-%d")
+            for r in conn.execute("""
+                SELECT symbol, MAX(trade_date)::DATE as latest
+                FROM agora.main.silver_equity_ohlcv_daily
+                GROUP BY symbol
+            """).fetchall()
+        }
+    finally:
+        conn.close()
+    return symbols, latest_dates
 
 def fetch_yahoo_ohlcv(symbol: str, start_date: str) -> list[dict]:
     """Fetch daily OHLCV from Yahoo Finance from start_date to today."""
@@ -81,31 +101,38 @@ def fetch_yahoo_ohlcv(symbol: str, start_date: str) -> list[dict]:
 
 @asset(
     group_name="equity",
-    description="Fetch missing equity OHLCV from Yahoo Finance and rebuild Silver table",
+    description="Fetch missing equity OHLCV from Yahoo Finance and rebuild Silver table. Symbol list driven from dim_instruments.",
     retry_policy=RetryPolicy(max_retries=3, delay=30, backoff=Backoff.EXPONENTIAL),
 )
 def silver_equity_ohlcv_daily(context: AssetExecutionContext):
-    """Incremental fetch from Yahoo Finance, append to Bronze, rebuild Silver."""
-    symbols, latest_date = get_symbols_and_latest_date(BRONZE_FILE)
-    context.log.info(f"Found {len(symbols)} symbols. Latest date in Bronze: {latest_date}")
-
+    """Incremental per-symbol fetch from Yahoo Finance, append to Bronze, rebuild Silver."""
+    symbols, latest_dates = get_symbols_and_latest_dates()
     today = date.today().strftime("%Y-%m-%d")
-    if latest_date >= today:
-        context.log.info("Bronze is already up to date. Rebuilding Silver only.")
-        new_records = 0
-    else:
-        context.log.info(f"Fetching {latest_date} -> {today} for {len(symbols)} symbols")
-        new_records = 0
-        with open(BRONZE_FILE, "a") as f:
-            for i, symbol in enumerate(symbols):
-                records = fetch_yahoo_ohlcv(symbol, latest_date)
+    context.log.info(f"Found {len(symbols)} symbols from dim_instruments.")
+
+    new_records = 0
+    skipped = 0
+    failed = 0
+
+    with open(BRONZE_FILE, "a") as f:
+        for i, symbol in enumerate(symbols):
+            start_date = latest_dates.get(symbol, DEFAULT_START)
+            if start_date >= today:
+                skipped += 1
+                continue
+            records = fetch_yahoo_ohlcv(symbol, start_date)
+            if records:
                 for rec in records:
                     f.write(json.dumps(rec) + "\n")
                 new_records += len(records)
-                context.log.info(f"[{i+1}/{len(symbols)}] {symbol}: +{len(records)} rows")
-                time.sleep(0.3)
+                context.log.info(f"[{i+1}/{len(symbols)}] {symbol}: +{len(records)} rows (from {start_date})")
+            else:
+                failed += 1
+                context.log.warning(f"[{i+1}/{len(symbols)}] {symbol}: no data returned (delisted or rate limited)")
+            time.sleep(0.3)
 
-    context.log.info(f"Appended {new_records} new records to Bronze. Rebuilding Silver...")
+    context.log.info(f"Fetch complete. New: {new_records} rows, Skipped: {skipped}, Failed: {failed}")
+    context.log.info("Rebuilding Silver table...")
 
     conn = duckdb.connect(DUCKDB_PATH)
     try:
@@ -133,4 +160,4 @@ def silver_equity_ohlcv_daily(context: AssetExecutionContext):
         conn.close()
 
     context.log.info(f"Silver rebuilt: {count} rows, {sym_count} symbols")
-    return {"new_records": new_records, "total_rows": count, "symbols": sym_count}
+    return {"new_records": new_records, "total_rows": count, "symbols": sym_count, "skipped": skipped, "failed": failed}
