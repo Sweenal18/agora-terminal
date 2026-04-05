@@ -616,7 +616,7 @@ async function loadSymbol() {
   } else {
     document.getElementById('lpName').textContent = 'Symbol not found in database';
   }
-  if (info && info.sector) loadPeerStrip(info.sector, raw);
+  if (raw) loadPeerStrip(info ? info.sector : null, raw);
   await loadChart(raw);
 }
 
@@ -1054,11 +1054,12 @@ async function loadPeerStrip(sector, currentSymbol) {
   if (!strip) return;
   strip.innerHTML = "<span style=\"color:var(--text-dim);font-size:11px;font-family:var(--mono);padding:4px 0;\">PEERS</span>";
   try {
-    const res = await fetch(`${API}/api/screener/screen?sector=${encodeURIComponent(sector)}&limit=7`);
+    const res = await fetch(`${API}/api/screener/peers/${currentSymbol}?limit=6`);
     const data = await res.json();
-    const peers = (data.data || []).filter(p => p.symbol !== currentSymbol).slice(0, 6);
+    const peers = data.peers || [];
+    if (!peers.length) { strip.innerHTML += '<span style="color:var(--text-dim);font-size:11px;font-family:var(--mono);">No peers found</span>'; return; }
     peers.forEach(p => {
-      const chg = p.change_1w_pct;
+      const chg = p.change_pct;
       const chgStr = chg != null ? (chg >= 0 ? "+" : "") + chg.toFixed(2) + "%" : "—";
       const chgClass = chg == null ? "" : chg >= 0 ? "pos" : "neg";
       const card = document.createElement("div");

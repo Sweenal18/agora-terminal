@@ -351,3 +351,57 @@ def search_assets(q: str = "", limit: int = 10):
     except Exception as e:
         log.error(f"Search error: {e}")
         return {"results": [], "query": q, "error": str(e)}
+@router.get("/peers/{symbol}")
+def get_peers(symbol: str, limit: int = 6):
+    """Get sector peers for a symbol from dim_instruments."""
+    try:
+        conn = duckdb.connect(DUCKDB_PATH, read_only=True)
+        # Get the sector for the requested symbol
+        row = conn.execute("""
+            SELECT sector FROM agora.main_gold.dim_instruments
+            WHERE symbol = ? AND is_current = TRUE
+        """, [symbol.upper()]).fetchone()
+
+        if not row or not row[0] or row[0] == 'Unknown':
+            conn.close()
+            return {"symbol": symbol, "sector": None, "peers": []}
+
+        sector = row[0]
+
+        # Get peers in same sector, joined with latest price
+        peers = conn.execute("""
+            SELECT
+                d.symbol,
+                d.company_name,
+                p.close,
+                p.daily_return_pct
+            FROM agora.main_gold.dim_instruments d
+            LEFT JOIN (
+                SELECT instrument_key, close, daily_return_pct,
+                       ROW_NUMBER() OVER (PARTITION BY instrument_key ORDER BY trade_date DESC) AS rn
+                FROM agora.main_gold.fct_prices
+            ) p ON d.instrument_key = p.instrument_key AND p.rn = 1
+            WHERE d.sector = ?
+              AND d.is_current = TRUE
+              AND d.symbol != ?
+              AND p.close IS NOT NULL
+            ORDER BY p.close DESC
+            LIMIT ?
+        """, [sector, symbol.upper(), limit]).fetchall()
+        conn.close()
+
+        return {
+            "symbol": symbol.upper(),
+            "sector": sector,
+            "peers": [
+                {
+                    "symbol": r[0],
+                    "company_name": r[1],
+                    "price": round(r[2], 2) if r[2] else None,
+                    "change_pct": round(r[3], 4) if r[3] else None,
+                }
+                for r in peers
+            ]
+        }
+    except Exception as e:
+        return {"symbol": symbol, "sector": None, "peers": [], "error": str(e)}
