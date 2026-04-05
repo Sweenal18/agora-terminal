@@ -57,12 +57,12 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
 
 | Table | Rows | Notes |
 |---|---|---|
-| fct_prices | 249,741 | 502 symbols, updated to 2026-04-02 |
+| fct_prices | 279,405 | 502 symbols, updated to 2026-04-05 |
 | fct_macro | 9,097 | 9 FRED series 2015-present |
 | fct_fundamentals | 170 | debt_to_equity, free_cash_flow_yield, avg_volume, country added |
 | dim_instruments | 552 | Full SCD2 -- 502 current, 50 historical |
 | dim_time | 5,844 | Date dimension |
-| silver_equity_ohlcv_daily | 27,216 rows | 54 active symbols |
+| silver_equity_ohlcv_daily | 279,405 rows | 502 symbols (full S&P 500) |
 | silver_equity_fundamentals | 120 rows | Partial -- needs full run |
 
 ### DWH Long-term Issues
