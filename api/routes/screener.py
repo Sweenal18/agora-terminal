@@ -24,6 +24,8 @@ def screen_assets(
     max_ev_ebitda: float = None,
     min_div_yield: float = None,
     min_volume_ratio: float = None,
+    max_debt_to_equity: float = None,
+    min_fcf_yield: float = None,
     only_up_days: bool = False,
     sort_by: str = "market_cap",
     sort_dir: str = "desc",
@@ -35,8 +37,6 @@ def screen_assets(
 
         query = """
             WITH latest_price AS (
-                -- Most recent price row per instrument from Gold fct_prices.
-                -- daily_return_pct, volume_ratio, is_up_day are pre-computed by dbt.
                 SELECT
                     instrument_key,
                     symbol,
@@ -60,7 +60,6 @@ def screen_assets(
                 WHERE asset_class = 'equity'
             ),
             latest_fundamentals AS (
-                -- Most recent fundamentals snapshot per instrument.
                 SELECT
                     instrument_key,
                     symbol,
@@ -75,6 +74,9 @@ def screen_assets(
                     dividend_yield,
                     roic,
                     current_ratio,
+                    debt_to_equity,
+                    free_cash_flow_yield,
+                    avg_volume,
                     ROW_NUMBER() OVER (
                         PARTITION BY instrument_key
                         ORDER BY snapshot_date DESC
@@ -82,13 +84,11 @@ def screen_assets(
                 FROM agora.main_gold.fct_fundamentals
             ),
             moving_avgs AS (
-                -- Moving averages computed from fct_prices history.
                 SELECT
                     instrument_key,
                     AVG(CASE WHEN rn <= 20  THEN price END) AS ma20,
                     AVG(CASE WHEN rn <= 50  THEN price END) AS ma50,
                     AVG(CASE WHEN rn <= 200 THEN price END) AS ma200,
-                    -- 1-week and 1-month returns using pre-computed daily_return_pct
                     MAX(CASE WHEN rn = 5  THEN price END) AS price_5d_ago,
                     MAX(CASE WHEN rn = 21 THEN price END) AS price_21d_ago
                 FROM latest_price
@@ -96,7 +96,6 @@ def screen_assets(
                 GROUP BY instrument_key
             )
             SELECT
-                -- Instrument identity from dim_instruments
                 d.symbol,
                 d.company_name,
                 d.sector,
@@ -104,7 +103,6 @@ def screen_assets(
                 d.market_cap_bucket,
                 d.asset_class,
 
-                -- Fundamentals from fct_fundamentals
                 f.market_cap,
                 f.beta,
                 f.week_52_high,
@@ -116,8 +114,10 @@ def screen_assets(
                 f.dividend_yield,
                 f.roic,
                 f.current_ratio,
+                f.debt_to_equity,
+                f.free_cash_flow_yield,
+                f.avg_volume,
 
-                -- Latest price from fct_prices (pre-computed metrics)
                 p.price,
                 p.volume,
                 p.change_1d_pct,
@@ -127,16 +127,13 @@ def screen_assets(
                 p.is_up_day,
                 p.trade_date AS last_date,
 
-                -- Moving averages
                 m.ma20,
                 m.ma50,
                 m.ma200,
 
-                -- Period returns
                 (p.price - m.price_5d_ago)  / NULLIF(m.price_5d_ago, 0)  * 100 AS change_1w_pct,
                 (p.price - m.price_21d_ago) / NULLIF(m.price_21d_ago, 0) * 100 AS change_1m_pct,
 
-                -- 52-week position
                 CASE WHEN f.week_52_low > 0
                     THEN (p.price - f.week_52_low)  / f.week_52_low  * 100
                     ELSE NULL END AS pct_from_52w_low,
@@ -144,7 +141,6 @@ def screen_assets(
                     THEN (p.price - f.week_52_high) / f.week_52_high * 100
                     ELSE NULL END AS pct_from_52w_high,
 
-                -- Distance from MA50
                 CASE WHEN m.ma50 > 0
                     THEN (p.price - m.ma50) / m.ma50 * 100
                     ELSE NULL END AS pct_from_ma50
@@ -154,6 +150,7 @@ def screen_assets(
             LEFT JOIN latest_fundamentals f ON d.instrument_key = f.instrument_key AND f.rn = 1
             LEFT JOIN moving_avgs         m ON d.instrument_key = m.instrument_key
             WHERE d.asset_class = 'equity'
+            AND d.is_current = true
         """
 
         params = []
@@ -187,19 +184,27 @@ def screen_assets(
         if min_volume_ratio:
             query += " AND p.volume_ratio >= ?"
             params.append(min_volume_ratio)
+        if max_debt_to_equity is not None:
+            query += " AND f.debt_to_equity <= ?"
+            params.append(max_debt_to_equity)
+        if min_fcf_yield is not None:
+            query += " AND f.free_cash_flow_yield >= ?"
+            params.append(min_fcf_yield / 100)
         if only_up_days:
             query += " AND p.is_up_day = TRUE"
 
         valid_sorts = {
-            "market_cap":    "f.market_cap",
-            "price":         "p.price",
-            "change_1d_pct": "p.change_1d_pct",
-            "change_1w_pct": "(p.price - m.price_5d_ago) / NULLIF(m.price_5d_ago, 0) * 100",
-            "volume":        "p.volume",
-            "volume_ratio":  "p.volume_ratio",
-            "beta":          "f.beta",
-            "roe":           "f.roe",
-            "ev_to_ebitda":  "f.ev_to_ebitda",
+            "market_cap":           "f.market_cap",
+            "price":                "p.price",
+            "change_1d_pct":        "p.change_1d_pct",
+            "change_1w_pct":        "(p.price - m.price_5d_ago) / NULLIF(m.price_5d_ago, 0) * 100",
+            "volume":               "p.volume",
+            "volume_ratio":         "p.volume_ratio",
+            "beta":                 "f.beta",
+            "roe":                  "f.roe",
+            "ev_to_ebitda":         "f.ev_to_ebitda",
+            "debt_to_equity":       "f.debt_to_equity",
+            "free_cash_flow_yield": "f.free_cash_flow_yield",
         }
         sort_expr = valid_sorts.get(sort_by, "f.market_cap")
         query += f" ORDER BY {sort_expr} {'DESC' if sort_dir == 'desc' else 'ASC'} NULLS LAST"
@@ -213,6 +218,7 @@ def screen_assets(
             "market_cap", "beta", "week_52_high", "week_52_low",
             "roe", "ev_to_ebitda", "price_to_book", "price_to_sales",
             "dividend_yield", "roic", "current_ratio",
+            "debt_to_equity", "free_cash_flow_yield", "avg_volume",
             "price", "volume", "change_1d_pct", "price_range_pct",
             "volume_usd_approx", "volume_ratio", "is_up_day", "last_date",
             "ma20", "ma50", "ma200",
@@ -246,6 +252,7 @@ def get_sectors():
             FROM agora.main_gold.dim_instruments
             WHERE sector IS NOT NULL
               AND sector != 'Unknown'
+              AND is_current = true
             ORDER BY sector
         """).fetchall()
         conn.close()
@@ -263,6 +270,7 @@ def get_market_cap_buckets():
             SELECT market_cap_bucket, COUNT(*) as count
             FROM agora.main_gold.dim_instruments
             WHERE asset_class = 'equity'
+              AND is_current = true
             GROUP BY market_cap_bucket
             ORDER BY count DESC
         """).fetchall()
@@ -270,6 +278,7 @@ def get_market_cap_buckets():
         return {"buckets": [{"bucket": r[0], "count": r[1]} for r in rows]}
     except Exception as e:
         return {"buckets": [], "error": str(e)}
+
 
 @router.get("/search")
 def search_assets(q: str = "", limit: int = 10):
@@ -291,10 +300,8 @@ def search_assets(q: str = "", limit: int = 10):
                     d.industry,
                     d.asset_class,
                     d.market_cap_bucket,
-                    -- Latest price from fct_prices
                     p.close    AS price,
                     p.daily_return_pct AS change_pct,
-                    -- Relevance score: lower = more relevant
                     CASE
                         WHEN UPPER(d.symbol)       = UPPER(?)       THEN 1
                         WHEN UPPER(d.symbol)       LIKE UPPER(?) || '%' THEN 2
@@ -311,11 +318,13 @@ def search_assets(q: str = "", limit: int = 10):
                            ROW_NUMBER() OVER (PARTITION BY instrument_key ORDER BY trade_date DESC) AS rn
                     FROM agora.main_gold.fct_prices
                 ) p ON d.instrument_key = p.instrument_key AND p.rn = 1
-                WHERE
+                WHERE d.is_current = true
+                  AND (
                     UPPER(d.symbol)       LIKE '%' || UPPER(?) || '%'
                     OR UPPER(d.company_name) LIKE '%' || UPPER(?) || '%'
                     OR UPPER(d.sector)       LIKE '%' || UPPER(?) || '%'
                     OR UPPER(d.industry)     LIKE '%' || UPPER(?) || '%'
+                  )
             )
             SELECT symbol, company_name, sector, industry, asset_class,
                    market_cap_bucket, price, change_pct, score
