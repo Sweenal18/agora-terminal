@@ -12,7 +12,8 @@ RUN pip install --no-cache-dir --timeout=300 \
     bcrypt==4.0.1 \
     python-multipart==0.0.9 \
     google-auth==2.29.0 \
-    httpx==0.27.0
+    httpx==0.27.0 \
+    groq==0.9.0
 COPY api/ ./api/
 COPY transform/dbt/agora.duckdb ./transform/dbt/agora.duckdb
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
