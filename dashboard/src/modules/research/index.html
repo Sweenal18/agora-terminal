@@ -386,14 +386,6 @@ function initResearchSearch() {
   const dropdown = document.getElementById('researchDropdown');
 
   input.addEventListener('input', () => {
-
-  input.addEventListener('focus', () => {
-    const q = input.value.trim();
-    if (q.length >= 1 && researchResults.length > 0) {
-      dropdown.classList.add('visible');
-    }
-  });
-
     const q = input.value.trim();
     researchActiveIdx = -1;
     if (q.length < 1) { dropdown.classList.remove('visible'); return; }
@@ -410,11 +402,11 @@ function initResearchSearch() {
             const chg = r.change_pct != null ? (r.change_pct >= 0 ? '+' : '') + r.change_pct.toFixed(2) + '%' : '';
             const chgColor = r.change_pct >= 0 ? 'var(--green)' : 'var(--red)';
             const price = r.price != null ? '$' + r.price.toFixed(2) : '';
-            return '<div class="search-item" data-idx="' + i + '">' +
-              '<span class="si-sym">' + r.symbol + '</span>' +
-              '<span class="si-name">' + (r.company_name || '') + '</span>' +
-              '<span class="si-price">' + price + '</span>' +
-              (chg ? '<span class="si-chg" style="color:' + chgColor + '">' + chg + '</span>' : '') +
+            return '<div class="search-item" data-idx="' + i + '">'+
+              '<span class="si-sym">' + r.symbol + '</span>'+
+              '<span class="si-name">' + (r.company_name || '') + '</span>'+
+              '<span class="si-price">' + price + '</span>'+
+              (chg ? '<span class="si-chg" style="color:' + chgColor + '">' + chg + '</span>' : '')+
               '</div>';
           }).join('');
           dropdown.querySelectorAll('.search-item').forEach((el, i) => {
@@ -429,6 +421,11 @@ function initResearchSearch() {
         dropdown.classList.add('visible');
       } catch(e) { console.error(e); }
     }, 200);
+  });
+
+  input.addEventListener('focus', () => {
+    const q = input.value.trim();
+    if (q.length >= 1 && researchResults.length > 0) dropdown.classList.add('visible');
   });
 
   input.addEventListener('keydown', e => {
