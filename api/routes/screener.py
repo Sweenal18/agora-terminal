@@ -150,7 +150,7 @@ def screen_assets(
             LEFT JOIN latest_fundamentals f ON d.instrument_key = f.instrument_key AND f.rn = 1
             LEFT JOIN moving_avgs         m ON d.instrument_key = m.instrument_key
             WHERE d.asset_class = 'equity'
-            AND d.is_current = true
+            AND d.is_current IS TRUE
         """
 
         params = []
