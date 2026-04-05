@@ -4,16 +4,16 @@ models:
 
   - name: dim_instruments
     description: >
-      Instrument reference dimension. One row per financial instrument (current
-      version only). Built from the snap_instruments SCD Type 2 snapshot.
+      Instrument reference dimension. Full SCD Type 2 history preserved.
+      Use WHERE is_current = true to get current records only.
       All fact tables join here via instrument_key.
     columns:
       - name: instrument_key
         description: MD5 surrogate key derived from symbol. Stable and deterministic.
-        tests: [not_null, unique]
+        tests: [not_null]
       - name: symbol
         description: Ticker symbol. Natural business key.
-        tests: [not_null, unique]
+        tests: [not_null]
       - name: company_name
         description: Full legal company name.
         tests: [not_null]
@@ -22,33 +22,49 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [Technology, Healthcare, Financials, Consumer Discretionary,
-                       Consumer Staples, Industrials, Energy, Utilities, Materials,
-                       Real Estate, Communication Services, Unknown]
+              arguments:
+                values: [Technology, Healthcare, Financials, Financial Services,
+                         Consumer Discretionary, Consumer Staples, Consumer Defensive,
+                         Consumer Cyclical, Industrials, Energy, Utilities, Materials,
+                         Basic Materials, Real Estate, Communication Services, Unknown]
       - name: industry
         description: GICS industry classification within sector.
         tests: [not_null]
+      - name: exchange
+        description: Exchange where instrument is listed. Null for pre-CDC historical rows.
+        tests:
+          - not_null:
+              config:
+                severity: warn
       - name: currency
         description: Trading currency.
         tests:
           - not_null
           - accepted_values:
-              values: [USD]
+              arguments:
+                values: [USD]
       - name: asset_class
         description: High-level asset classification.
         tests:
           - not_null
           - accepted_values:
-              values: [equity, crypto, etf, index]
+              arguments:
+                values: [equity, crypto, etf, index]
       - name: market_cap_bucket
         description: Size bucket derived from market_cap USD value.
         tests:
           - not_null
           - accepted_values:
-              values: [mega_cap, large_cap, mid_cap, small_cap, micro_cap, unknown]
+              arguments:
+                values: [mega_cap, large_cap, mid_cap, small_cap, micro_cap, unknown]
+      - name: is_current
+        description: True if this is the current active version of the instrument record.
+        tests: [not_null]
       - name: valid_from
         description: When this version of the instrument record became active.
         tests: [not_null]
+      - name: valid_to
+        description: When this version was superseded. NULL for current records.
 
   - name: dim_time
     description: >
@@ -69,7 +85,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 3, 4]
+              arguments:
+                values: [1, 2, 3, 4]
       - name: month_number
         description: Month number (1-12).
         tests: [not_null]
@@ -134,7 +151,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [equity, crypto, etf, index]
+              arguments:
+                values: [equity, crypto, etf, index]
       - name: dbt_loaded_at
         description: UTC timestamp when this row was written by dbt.
         tests: [not_null]
@@ -142,9 +160,8 @@ models:
   - name: fct_fundamentals
     description: >
       Daily fundamentals snapshot. One row per (instrument_key, date_key).
-      Source: FMP /stable/ endpoints. Actual columns reflect what FMP free
-      tier returns: beta, roe, ev_to_ebitda, price_to_book, price_to_sales,
-      dividend_yield, roic, current_ratio.
+      Source: FMP /stable/ endpoints. Covers key valuation, profitability,
+      liquidity and capital structure metrics.
     columns:
       - name: instrument_key
         description: Surrogate key. Join to dim_instruments.instrument_key.
@@ -162,6 +179,10 @@ models:
         description: Market capitalisation in USD at time of fetch.
       - name: beta
         description: Beta coefficient vs S&P 500.
+      - name: week_52_high
+        description: 52-week high price.
+      - name: week_52_low
+        description: 52-week low price.
       - name: roe
         description: Return on equity as decimal.
       - name: ev_to_ebitda
@@ -176,6 +197,14 @@ models:
         description: Return on invested capital as decimal.
       - name: current_ratio
         description: Current assets divided by current liabilities.
+      - name: debt_to_equity
+        description: Total debt divided by total equity.
+      - name: free_cash_flow_yield
+        description: Free cash flow divided by market cap.
+      - name: avg_volume
+        description: Average daily trading volume.
+      - name: country
+        description: Country of incorporation.
       - name: is_market_cap_missing
         description: True if market_cap is NULL.
         tests: [not_null]
@@ -218,14 +247,16 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: [interest_rate, yield_curve, inflation, employment,
-                       growth, risk_sentiment, money_supply, other]
+              arguments:
+                values: [interest_rate, yield_curve, inflation, employment,
+                         growth, risk_sentiment, money_supply, other]
       - name: reporting_frequency
         description: How often FRED publishes this series.
         tests:
           - not_null
           - accepted_values:
-              values: [daily, monthly, quarterly, unknown]
+              arguments:
+                values: [daily, monthly, quarterly, unknown]
       - name: dbt_loaded_at
         description: UTC timestamp when this row was written by dbt.
         tests: [not_null]
