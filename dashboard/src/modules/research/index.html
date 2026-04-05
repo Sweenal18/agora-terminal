@@ -240,9 +240,8 @@
     <input class="symbol-input" id="symbolInput" type="text" placeholder="Search ticker, company..." maxlength="40" autocomplete="off" />
     <div class="search-dropdown" id="researchDropdown"></div>
   </div>
-  <button class="btn-load" onclick="loadSymbol()">LOAD</button>
+  <button class="chip-add-btn" id="chipAddBtn" title="Browse symbols">＋</button>
   <div class="quick-chips" id="pinnedChips"></div>
-  <button class="chip-add-btn" id="chipAddBtn" title="Add symbol">＋</button>
   <div class="chip-browse" id="chipBrowse"></div>
   <div class="company-header-bar" id="headerBar" style="display:none;">
     <span class="company-name-bar" id="headerName"></span>
@@ -387,6 +386,14 @@ function initResearchSearch() {
   const dropdown = document.getElementById('researchDropdown');
 
   input.addEventListener('input', () => {
+
+  input.addEventListener('focus', () => {
+    const q = input.value.trim();
+    if (q.length >= 1 && researchResults.length > 0) {
+      dropdown.classList.add('visible');
+    }
+  });
+
     const q = input.value.trim();
     researchActiveIdx = -1;
     if (q.length < 1) { dropdown.classList.remove('visible'); return; }
@@ -472,24 +479,43 @@ function getPinnedLabel(sym) {
 }
 
 function savePins() { localStorage.setItem(PIN_KEY, JSON.stringify(pinnedSymbols)); }
-
 function renderPinnedChips() {
   const container = document.getElementById("pinnedChips");
-  if (container && !container._wheelSet) {
+  if (!container) return;
+  if (!container._wheelSet) {
     container._wheelSet = true;
     container.addEventListener("wheel", e => { e.preventDefault(); container.scrollLeft += e.deltaY; }, {passive:false});
   }
-  if (!container) return;
   container.innerHTML = "";
+  let dragSrc = null;
   pinnedSymbols.forEach(sym => {
     const chip = document.createElement("div");
     chip.className = "chip" + (sym === currentSymbol ? " active-chip" : "");
     chip.textContent = sym === "^GSPC" ? "S&P 500" : sym === "^IXIC" ? "NASDAQ" : sym === "^DJI" ? "Dow Jones" : sym === "^RUT" ? "Russell 2000" : sym === "EURUSD" ? "EUR/USD" : sym === "GBPUSD" ? "GBP/USD" : sym === "USDJPY" ? "USD/JPY" : sym;
     if (sym === currentSymbol) { chip.style.color="var(--teal)"; chip.style.borderColor="var(--teal-dim)"; chip.style.background="var(--teal-glow)"; }
+    chip.draggable = true;
+    chip.dataset.sym = sym;
     chip.onclick = () => setSymbol(sym);
     chip.oncontextmenu = (e) => { e.preventDefault(); pinnedSymbols = pinnedSymbols.filter(s => s !== sym); savePins(); renderPinnedChips(); };
+    chip.addEventListener("dragstart", e => { dragSrc = sym; chip.style.opacity = "0.4"; e.dataTransfer.effectAllowed = "move"; });
+    chip.addEventListener("dragend", () => { chip.style.opacity = "1"; container.querySelectorAll(".chip").forEach(c => c.classList.remove("drag-over")); });
+    chip.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; chip.classList.add("drag-over"); });
+    chip.addEventListener("dragleave", () => chip.classList.remove("drag-over"));
+    chip.addEventListener("drop", e => {
+      e.preventDefault();
+      chip.classList.remove("drag-over");
+      if (dragSrc === sym) return;
+      const fromIdx = pinnedSymbols.indexOf(dragSrc);
+      const toIdx = pinnedSymbols.indexOf(sym);
+      if (fromIdx < 0 || toIdx < 0) return;
+      pinnedSymbols.splice(fromIdx, 1);
+      pinnedSymbols.splice(toIdx, 0, dragSrc);
+      savePins();
+      renderPinnedChips();
+    });
     container.appendChild(chip);
   });
+}
 }
 
 function updateActiveChip() { renderPinnedChips(); }
