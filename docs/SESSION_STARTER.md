@@ -23,7 +23,7 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
   - AI Query Engine [OK] (Groq llama-3.1-8b-instant, POST /api/ai/query)
   - fct_macro populated [OK] (9097 rows, 9 FRED series)
   - Chart Terminal [MERGED into Research Terminal]
-  - Asset Screener [OK] (Gold layer, 16 columns, filters)
+  - Asset Screener [OK] (Gold layer, filters, debt_to_equity + free_cash_flow_yield + avg_volume added)
   - Research Terminal [OK] (3 tabs: Chart/Financials/AI Research, default AAPL, timeframe buttons 1W/1M/3M/6M/1Y/MAX)
   - Nav [OK] (4 items: Overview/Research/Screener/Portfolio)
   - Smart search in Overview [OK] (ticker -> Research chart, question -> AI tab)
@@ -32,30 +32,35 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
   - Cloudflare Tunnel [OK] (permanent, runs as Windows service, api.agora-terminal.com)
   - Equity data automated [OK] (Dagster equity_daily fetches Yahoo Finance incrementally, appends to Bronze)
   - Dagster gRPC [OK] (dagster-user-code service, all 6 assets green, 5 schedules running)
-  - Auth [OK] (JWT login, bcrypt, Google OAuth, GitHub OAuth)
+  - Auth [OK] (JWT login, bcrypt, Google OAuth, GitHub OAuth, soft gate)
   - Soft gate [OK] (3 free actions, reappears after 2 more on dismiss, gate.js in shared/)
   - Peer comparison strip [OK] (sector peers with weekly change, below OHLCV metrics bar)
   - Dynamic pinned chip bar [OK] (localStorage, browse dropdown, pin/unpin with star, scroll)
-  - dbt Gold automated [OK] (Windows Task Scheduler, daily 06:00 IST, logs to scripts/dbt_gold.log)
+  - dbt Gold automated [OK] (Windows Task Scheduler, daily 1:00 PM IST, after all Dagster assets complete)
   - Portfolio page [OK] (coming soon placeholder at dashboard/src/modules/portfolio/)
   - About page [OK] (dashboard/src/modules/about/)
   - User menu [OK] (avatar initials dropdown: Account, About Agora, Sign Out -- all 3 nav files)
   - Account page [OK] (dashboard/src/modules/account/)
   - DWH audit [OK] (dim_instruments now covers all 502 symbols, 0 orphans)
   - Fundamentals fetcher [OK] (data-driven, reads symbols from silver_equity_ohlcv_daily)
-  - Screener API [OK] (symbol filter parameter added)
-  - **Remaining:** Instrument picker UI (Zerodha-style modal), expand OHLCV fetcher to full S&P 500, cloud migration
+  - Screener API [OK] (symbol filter, debt_to_equity, free_cash_flow_yield, avg_volume added)
+  - Screener UI [OK] (Max Debt/Equity + Min FCF Yield filters added)
+  - dim_instruments SCD Type 2 [OK] (is_current, valid_to, exchange columns added, 552 total rows, 50 historical)
+  - fct_fundamentals [OK] (debt_to_equity, free_cash_flow_yield, avg_volume, country added)
+  - Gold schema tests [OK] (60 pass, 1 warn on exchange null for historical SCD2 rows)
+  - DuckDB concurrency [OK] (dagster.yaml mounted into daemon + webserver via volume)
+  - **Remaining:** Instrument picker UI, Portfolio module, Social Sentiment Engine, SEC EDGAR, cloud migration
 
 ---
 
-## DWH Status (April 6 2026)
+## DWH Status (April 5 2026)
 
 | Table | Rows | Notes |
 |---|---|---|
 | fct_prices | 249,741 | 502 symbols, updated to 2026-04-02 |
 | fct_macro | 9,097 | 9 FRED series 2015-present |
-| fct_fundamentals | 170 | P/B, ROE, beta etc. -- only 54 active symbols |
-| dim_instruments | 502 | Full S&P 500 -- 50 CDC + 452 from fct_prices |
+| fct_fundamentals | 170 | debt_to_equity, free_cash_flow_yield, avg_volume, country added |
+| dim_instruments | 552 | Full SCD2 -- 502 current, 50 historical |
 | dim_time | 5,844 | Date dimension |
 | silver_equity_ohlcv_daily | 27,216 rows | 54 active symbols |
 | silver_equity_fundamentals | 120 rows | Partial -- needs full run |
@@ -65,8 +70,8 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
 - silver_equity_fundamentals only has 120 symbols -- needs Dagster fundamentals asset to run for all 54 active symbols
 - fct_prices has 502 symbols from historical polygon bulk load -- 448 are stale (no new data coming in)
 - Root cause: equity OHLCV fetcher hardcoded to 54 symbols, needs expansion to full S&P 500
-- dim_instruments fix: now sources from CDC snapshot UNION fct_prices (self-healing as new symbols added)
-- Fundamentals asset fix: now reads symbol list from silver_equity_ohlcv_daily (data-driven, no hardcoded list)
+- Streaming pipeline (Binance, CDC, bronze-writer) needs cloud deployment to run 24/7
+- Crypto/commodity 0% change on dashboard -- symptom of streaming pipeline being down locally
 
 ---
 
@@ -76,7 +81,7 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
 |---|---|---|
 | market_overview | Live | Smart search, heatmap, real data, user menu |
 | research | Live | 3 tabs, peer strip, pinned chip bar, user menu |
-| screener | Live | Gold layer, 16 cols, symbol click -> Research, user menu |
+| screener | Live | Gold layer, debt_to_equity + FCF yield filters added |
 | portfolio | Live | Coming soon placeholder |
 | about | Live | Product page, no price commitment |
 | auth | Live | JWT + Google OAuth + GitHub OAuth |
@@ -89,10 +94,11 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
 
 ## Next Steps (in order)
 
-1. Instrument picker UI -- Zerodha-style modal with search + category tabs (Equities/Indices/Crypto/Forex/Commodities)
-2. Expand OHLCV fetcher to full S&P 500 (currently 54 symbols)
-3. Run fundamentals Dagster asset for all active symbols
-4. Sprint 5 cloud migration (Oracle ARM A1 when available)
+1. Portfolio module -- build actual portfolio tracker
+2. Instrument picker UI -- Zerodha-style modal with search + category tabs
+3. Social Sentiment Engine -- Reddit PRAW + VADER + QuestDB (Reddit API blocked by policy flow, retry later)
+4. Expand OHLCV fetcher to full S&P 500 (currently 54 symbols)
+5. Sprint 5 cloud migration (Oracle ARM A1 when available, Hetzner CAX21 fallback at €6.49/mo)
 
 ---
 
@@ -105,7 +111,7 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
 - Oracle server SSH: $keyPath = 'C:\Users\Sweetan Bandodkar\Downloads\ssh-key-2026-03-22.key'
 - SSH command: ssh -i $keyPath ubuntu@140.245.250.232 (slow, 1GB AMD micro, API only)
 - Cloudflare tunnel: Runs as Windows service (cloudflared), starts on boot automatically
-- dbt Gold: Automated via Windows Task Scheduler at 06:00 IST daily. Script: scripts/run_dbt_gold.ps1. Log: scripts/dbt_gold.log. Manual: dbt run --select tag:gold --profiles-dir transform\dbt --project-dir transform\dbt\agora
+- dbt Gold: Automated via Windows Task Scheduler at 1:00 PM IST daily (after all Dagster assets complete). Script: scripts/run_dbt_gold.ps1. Log: scripts/dbt_gold.log.
 
 ---
 
@@ -130,7 +136,8 @@ Financial intelligence platform. Bloomberg charges $24,000/year. We think that's
 | data_quality_daily_schedule | 0 3 * * * | Run Great Expectations checks |
 | cdc_instruments_schedule | */15 * * * * | Consume Debezium CDC events |
 
-dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_daily).
+dbt Gold runs automatically via Task Scheduler at 1:00 PM IST (after all Dagster assets complete).
+DuckDB concurrency: dagster.yaml mounted via volume into both dagster-daemon and dagster-webserver containers.
 
 ---
 
@@ -144,7 +151,7 @@ dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_
 - QuestDB SQL: Use LATEST ON timestamp PARTITION BY symbol -- NOT MAX subquery
 - DuckDB table full path: agora.main.silver_equity_ohlcv_daily (Silver), agora.main_gold.* (Gold)
 - FRED key: Goes in infra/docker/.env not project root .env -- needs full stop/start not restart
-- Gold tables: agora.main_gold schema. dim_instruments has no is_current column. fct_prices uses instrument_key/date_key/close
+- Gold tables: agora.main_gold schema. dim_instruments has is_current column (SCD2). Filter WHERE is_current = TRUE for current records only.
 - CDC: Debezium connector password is change_me_in_production (from infra/docker/.env). Schema Registry must be started separately. Kafka Connect on port 8083.
 - AI Query Engine: Uses Groq llama-3.1-8b-instant (NOT Ollama). GROQ_API_KEY in infra/docker/.env, wired into docker-compose.yml under api service
 - Groq network: requests library works from container (urllib gets 403 from Groq)
@@ -157,8 +164,9 @@ dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_
 - Soft gate: gate.js in dashboard/src/modules/shared/. Tracks actions in localStorage key agora_action_count. Limit=3, resets to 1 on dismiss.
 - User menu: toggleUserMenu() function in all 3 nav files. Avatar shows email initials. Menu has Account/About/Sign Out.
 - httpx==0.27.0 added to api/Dockerfile for GitHub OAuth backend calls.
-- dim_instruments: sources from CDC snapshot UNION fct_prices orphans -- covers all 502 symbols
-- Fundamentals Dagster asset: reads symbol list dynamically from silver_equity_ohlcv_daily at runtime
+- dim_instruments: SCD Type 2 -- use WHERE is_current = TRUE for current records. 552 total rows (502 current, 50 historical).
+- Screener: filters dim_instruments WHERE is_current IS TRUE to avoid duplicate rows from SCD2 history.
+- Fundamentals symbol list: data-driven from silver_equity_ohlcv_daily, not hardcoded
 - Screener API: has symbol filter parameter (GET /api/screener/screen?symbol=TSLA&limit=1)
 - Research Terminal: screener call is now symbol-specific (not limit=200 bulk fetch)
 - DWH audit scripts: scripts/schema_audit.py, scripts/dwh_audit.py, scripts/orphan_audit.py
@@ -170,7 +178,7 @@ dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_
 | Endpoint | Source | Status |
 |---|---|---|
 | GET /health | Internal | Live |
-| GET /api/crypto/prices | QuestDB | Live (change% shows 0 -- needs fix) |
+| GET /api/crypto/prices | QuestDB | Live (change% shows 0 -- streaming pipeline down locally) |
 | GET /api/crypto/ohlcv/{symbol} | QuestDB | Live |
 | GET /api/equity/symbols | DuckDB Silver | Live |
 | GET /api/equity/ohlcv/{symbol} | DuckDB Silver | Live |
@@ -182,7 +190,7 @@ dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_
 | GET /api/chart/ohlcv/{symbol} | DuckDB Silver / Yahoo | Live (timeframe: 1W/1M/3M/6M/1Y/MAX) |
 | GET /api/chart/info/{symbol} | DuckDB Gold | Live |
 | GET /api/chart/symbols | DuckDB Silver | Live (54 active symbols) |
-| GET /api/screener/screen | DuckDB Gold | Live (16 metrics, filters, symbol param added) |
+| GET /api/screener/screen | DuckDB Gold | Live (debt_to_equity, free_cash_flow_yield, avg_volume added) |
 | GET /api/screener/sectors | DuckDB Gold | Live |
 | GET /api/screener/search | DuckDB Gold | Live (fuzzy search) |
 | POST /auth/register | PostgreSQL | Live |
@@ -227,5 +235,10 @@ dbt Gold runs automatically via Task Scheduler at 06:00 IST (30min after equity_
 - Peer comparison strip uses /api/screener/screen?sector=X&limit=7, filters current symbol, shows 6 peers
 - Pinned chips stored in localStorage key agora_pinned_chips, defaults defined in DEFAULT_PINS array
 - About page copy: no price commitment -- "at a fraction of the cost" positioning
-- dim_instruments self-healing: UNION of CDC snapshot + fct_prices orphans, enriched with fundamentals where available
+- dim_instruments SCD Type 2: full history preserved, filter WHERE is_current = TRUE for current records
+- Screener deduplication: WHERE is_current IS TRUE prevents duplicate rows from SCD2 history
 - Fundamentals symbol list: data-driven from silver_equity_ohlcv_daily, not hardcoded
+- Screener API: has symbol filter parameter (GET /api/screener/screen?symbol=TSLA&limit=1)
+- Research Terminal: screener call is now symbol-specific (not limit=200 bulk fetch)
+- DWH audit scripts: scripts/schema_audit.py, scripts/dwh_audit.py, scripts/orphan_audit.py
+- Social Sentiment Engine: planned (Reddit PRAW + VADER + QuestDB), Reddit API policy flow blocked, retry later
