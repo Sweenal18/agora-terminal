@@ -300,7 +300,7 @@ def get_chart_symbols():
         rows = conn.execute("""
             SELECT s.symbol, COALESCE(d.company_name, s.symbol) as name
             FROM (SELECT DISTINCT symbol FROM agora.main.silver_equity_ohlcv_daily) s
-            LEFT JOIN agora.main_gold.dim_instruments d ON s.symbol = d.symbol
+            LEFT JOIN agora.main_gold.dim_instruments d ON s.symbol = d.symbol AND d.is_current = TRUE
             ORDER BY s.symbol
         """).fetchall()
         conn.close()
