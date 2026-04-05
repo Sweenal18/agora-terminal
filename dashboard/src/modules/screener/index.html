@@ -183,6 +183,14 @@
       <input class="filter-input" id="fMinDiv" type="number" step="0.1" placeholder="e.g. 2">
     </div>
     <div class="filter-group">
+      <div class="filter-label">Max Debt/Equity</div>
+      <input class="filter-input" id="fMaxDebt" type="number" step="0.1" placeholder="e.g. 2">
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Min FCF Yield (%)</div>
+      <input class="filter-input" id="fMinFcf" type="number" step="0.1" placeholder="e.g. 2">
+    </div>
+    <div class="filter-group">
       <div class="filter-label">Sort By</div>
       <select class="filter-select" id="fSortBy">
         <option value="market_cap">Market Cap</option>
@@ -193,6 +201,8 @@
         <option value="roe">ROE</option>
         <option value="ev_to_ebitda">EV/EBITDA</option>
         <option value="volume">Volume</option>
+        <option value="debt_to_equity">Debt/Equity</option>
+        <option value="free_cash_flow_yield">FCF Yield</option>
       </select>
     </div>
     <div class="filter-group">
@@ -286,6 +296,8 @@ async function runScreen() {
   const minBeta = document.getElementById('fMinBeta').value;
   const maxBeta = document.getElementById('fMaxBeta').value;
   const minDiv = document.getElementById('fMinDiv').value;
+  const maxDebt = document.getElementById('fMaxDebt').value;
+  const minFcf = document.getElementById('fMinFcf').value;
   const sortBy = document.getElementById('fSortBy').value;
   const sortDir = document.getElementById('fSortDir').value;
 
@@ -297,6 +309,8 @@ async function runScreen() {
   if (minBeta) params.append('min_beta', minBeta);
   if (maxBeta) params.append('max_beta', maxBeta);
   if (minDiv)  params.append('min_div_yield', minDiv);
+  if (maxDebt) params.append('max_debt_to_equity', maxDebt);
+  if (minFcf)  params.append('min_fcf_yield', minFcf);
   params.append('sort_by', sortBy);
   params.append('sort_dir', sortDir);
   params.append('limit', 100);
@@ -352,6 +366,8 @@ function resetFilters() {
   document.getElementById('fMinBeta').value = '';
   document.getElementById('fMaxBeta').value = '';
   document.getElementById('fMinDiv').value = '';
+  document.getElementById('fMaxDebt').value = '';
+  document.getElementById('fMinFcf').value = '';
   document.getElementById('fSortBy').value = 'market_cap';
   document.getElementById('fSortDir').value = 'desc';
   runScreen();
