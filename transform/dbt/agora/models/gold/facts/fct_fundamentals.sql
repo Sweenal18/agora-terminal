@@ -6,7 +6,6 @@
         tags                 = ['gold', 'fact']
     )
 }}
-
 WITH source AS (
     SELECT *
     FROM {{ source('silver_fundamentals', 'silver_equity_fundamentals') }}
@@ -31,9 +30,13 @@ final AS (
         dividend_yield::DOUBLE                                          AS dividend_yield,
         roic::DOUBLE                                                    AS roic,
         current_ratio::DOUBLE                                           AS current_ratio,
+        debt_to_equity::DOUBLE                                          AS debt_to_equity,
+        free_cash_flow_yield::DOUBLE                                    AS free_cash_flow_yield,
+        avg_volume::BIGINT                                              AS avg_volume,
         sector::VARCHAR                                                 AS sector,
         industry::VARCHAR                                               AS industry,
         exchange::VARCHAR                                               AS exchange,
+        country::VARCHAR                                                AS country,
         (market_cap IS NULL)::BOOLEAN                                   AS is_market_cap_missing,
         (roe IS NULL)::BOOLEAN                                          AS is_roe_missing,
         updated_at::TIMESTAMP                                           AS source_fetched_at,
