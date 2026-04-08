@@ -389,6 +389,12 @@ function initResearchSearch() {
   input.addEventListener('input', () => {
     const q = input.value.trim();
     researchActiveIdx = -1;
+    // If browse panel is open, filter it
+    const browse = document.getElementById("chipBrowse");
+    if (browse && browse.classList.contains("visible")) {
+      renderBrowseList(q, false);
+      return;
+    }
     if (q.length < 1) { dropdown.classList.remove('visible'); return; }
     clearTimeout(researchSearchTimeout);
     researchSearchTimeout = setTimeout(async () => {
@@ -532,7 +538,7 @@ function renderBrowseList(filter, keepScroll) {
     { label: "FOREX", items: ALL_SYMBOLS_EXTRA.filter(s => s.type === "forex") },
     { label: "COMMODITIES", items: ALL_SYMBOLS_EXTRA.filter(s => s.type === "commodity") },
   ];
-  let html = `<div style="padding:8px 14px 4px;"><input id="browseSearch" placeholder="Search..." style="width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:13px;color:var(--text-primary);outline:none;" /></div>`;
+  let html = ``;
   groups.forEach(g => {
     const filtered = g.items.filter(s => !q || s.symbol.toLowerCase().includes(q) || (s.name||"").toLowerCase().includes(q));
     if (!filtered.length) return;
@@ -572,12 +578,7 @@ function renderBrowseList(filter, keepScroll) {
     });
   });
 
-  const searchEl = document.getElementById("browseSearch");
   browse.scrollTop = scrollTop;
-  if (searchEl) {
-    if (!keepScroll) searchEl.focus();
-    searchEl.addEventListener("input", () => renderBrowseList(searchEl.value, false));
-  }
 }
 
 async function loadSymbol() {
