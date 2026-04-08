@@ -38,10 +38,10 @@
   .search-bar {
     position:fixed; top:52px; left:0; right:0; z-index:99;
     background:var(--bg-panel); border-bottom:1px solid var(--border);
-    padding:0 24px; display:flex; align-items:center; gap:12px; flex-wrap:nowrap; overflow:hidden; height:44px;
+    padding:0 24px; display:flex; align-items:center; gap:12px; flex-wrap:nowrap; overflow:visible; height:44px;
   }
   .search-label { font-family:var(--mono); font-size:15px; color:var(--text-dim); letter-spacing:0.1em; white-space:nowrap; }
-  .symbol-input {
+  .symbol-input { width:360px !important; min-width:360px;
     background:var(--bg-card); border:1px solid var(--border); border-radius:4px;
     padding:6px 14px; font-family:var(--mono); font-size:15px; font-weight:500;
     color:var(--text-primary); outline:none; width:280px; letter-spacing:0.05em;
@@ -50,7 +50,7 @@
   .symbol-input:focus { border-color:var(--teal-dim); }
   .search-wrap { position:relative; }
   .search-dropdown {
-    position:absolute; top:calc(100% + 4px); left:0; width:360px;
+    position:absolute; top:calc(100% + 4px); left:0; width:480px;
     background:var(--bg-panel); border:1px solid var(--border-bright); border-radius:6px;
     z-index:9000; overflow-y:auto; display:none;
   }
@@ -240,7 +240,6 @@
     <input class="symbol-input" id="symbolInput" type="text" placeholder="Search ticker, company..." maxlength="40" autocomplete="off" />
     <div class="search-dropdown" id="researchDropdown"></div>
   </div>
-  <button class="chip-add-btn" id="chipAddBtn" title="Browse symbols">＋</button>
   <div class="quick-chips" id="pinnedChips"></div>
   <div class="chip-browse" id="chipBrowse"></div>
   <div class="company-header-bar" id="headerBar" style="display:none;">
@@ -407,11 +406,13 @@ function initResearchSearch() {
             const chg = r.change_pct != null ? (r.change_pct >= 0 ? '+' : '') + r.change_pct.toFixed(2) + '%' : '';
             const chgColor = r.change_pct >= 0 ? 'var(--green)' : 'var(--red)';
             const price = r.price != null ? '$' + r.price.toFixed(2) : '';
+            const pinned = pinnedSymbols.includes(r.symbol);
             return '<div class="search-item" data-idx="' + i + '">' +
               '<span class="si-sym">' + r.symbol + '</span>' +
               '<span class="si-name">' + (r.company_name || '') + '</span>' +
               '<span class="si-price">' + price + '</span>' +
               (chg ? '<span class="si-chg" style="color:' + chgColor + '">' + chg + '</span>' : '') +
+              '<span class="si-pin" data-sym="' + r.symbol + '" style="margin-left:auto;padding:0 6px;cursor:pointer;font-size:15px;color:' + (pinned ? 'var(--teal)' : 'var(--text-dim)') + '">' + (pinned ? '&#9733;' : '&#9734;') + '</span>' +
               '</div>';
           }).join('');
           dropdown.querySelectorAll('.search-item').forEach((el, i) => {
