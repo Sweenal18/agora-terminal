@@ -450,8 +450,10 @@ function initResearchSearch() {
     else if (e.key === 'Escape') { dropdown.classList.remove('visible'); }
   });
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.search-wrap')) dropdown.classList.remove('visible');
+  document.addEventListener('mousedown', e => {
+    if (!e.target.closest('.search-wrap')) {
+      dropdown.classList.remove('visible');
+    }
   });
 }
 
