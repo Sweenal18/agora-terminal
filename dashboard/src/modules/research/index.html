@@ -418,9 +418,9 @@ function initResearchSearch() {
           }).join('');
           dropdown.querySelectorAll('.search-item').forEach((el, i) => {
             el.addEventListener('click', () => {
-              input.value = researchResults[i].symbol;
               dropdown.classList.remove('visible');
               currentSymbol = researchResults[i].symbol;
+              document.getElementById('symbolInput').value = '';
               loadSymbol();
             });
           });
@@ -437,9 +437,10 @@ function initResearchSearch() {
     else if (e.key === 'Enter') {
       e.preventDefault();
       if (researchActiveIdx >= 0 && researchResults[researchActiveIdx]) {
-        input.value = researchResults[researchActiveIdx].symbol;
+        currentSymbol = researchResults[researchActiveIdx].symbol;
         dropdown.classList.remove('visible');
       }
+      input.value = '';
       loadSymbol();
     }
     else if (e.key === 'Escape') { dropdown.classList.remove('visible'); }
@@ -451,7 +452,8 @@ function initResearchSearch() {
 }
 
 function setSymbol(sym) {
-  document.getElementById('symbolInput').value = sym;
+  document.getElementById('symbolInput').value = '';
+  currentSymbol = sym;
   loadSymbol();
 }
 
@@ -583,7 +585,7 @@ function renderBrowseList(filter, keepScroll) {
 
 async function loadSymbol() {
   const inputVal = document.getElementById('symbolInput').value.trim();
-  const raw = inputVal.toUpperCase().split(' ')[0];
+  const raw = inputVal ? inputVal.toUpperCase().split(' ')[0] : currentSymbol;
   if (!raw) return;
   currentSymbol = raw;
   updateActiveChip();
