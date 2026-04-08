@@ -389,7 +389,6 @@ function initResearchSearch() {
   input.addEventListener('input', () => {
     const q = input.value.trim();
     researchActiveIdx = -1;
-    // If browse panel is open, filter it
     const browse = document.getElementById("chipBrowse");
     if (browse && browse.classList.contains("visible")) {
       renderBrowseList(q, false);
@@ -525,7 +524,7 @@ function setupBrowseDropdown() {
   };
 
   document.addEventListener("click", e => {
-    if (!e.target.closest("#chipBrowse") && !e.target.closest("#chipAddBtn")) browse.classList.remove("visible");
+    if (!e.target.closest("#chipBrowse") && !e.target.closest("#chipAddBtn") && !e.target.closest(".search-wrap")) browse.classList.remove("visible");
   });
 }
 
