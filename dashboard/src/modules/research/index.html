@@ -518,7 +518,7 @@ function setupBrowseDropdown() {
   btn.onclick = (e) => {
     e.stopPropagation();
     if (browse.classList.contains("visible")) { browse.classList.remove("visible"); return; }
-    renderBrowseList("");
+    renderBrowseList(document.getElementById("symbolInput").value.trim());
     browse.classList.add("visible");
   };
 
@@ -574,7 +574,7 @@ function renderBrowseList(filter, keepScroll) {
       }
       savePins();
       renderPinnedChips();
-      renderBrowseList(document.getElementById("browseSearch")?.value || "", true);
+      renderBrowseList("", true);
     });
   });
 
