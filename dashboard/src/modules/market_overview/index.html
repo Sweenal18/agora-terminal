@@ -434,7 +434,7 @@ const SIGNALS = [
   { type:'macro',       tag:'Stack', text:'Bronze Iceberg lakehouse - dbt Silver models - FastAPI - Dashboard', time:'Phase 1' },
 ];
 
-const SP500_TICKERS = [
+let SP500_TICKERS = [
   {s:'AAPL',p:0},{s:'MSFT',p:0},{s:'NVDA',p:0},{s:'AMZN',p:0},{s:'META',p:0},
   {s:'GOOGL',p:0},{s:'BRK',p:0},{s:'LLY',p:0},{s:'JPM',p:0},{s:'V',p:0},
   {s:'XOM',p:0},{s:'UNH',p:0},{s:'JNJ',p:0},{s:'PG',p:0},{s:'MA',p:0},
@@ -497,12 +497,13 @@ async function fetchMacroPulse() {
 
 async function fetchEquityHeatmap() {
   try {
-    const res = await fetch(`${API_BASE}/api/equity/heatmap`);
+    const res = await fetch(`${API_BASE}/api/screener/screen?limit=55&sort_by=market_cap&sort_dir=desc`);
     const json = await res.json();
-    if (json.data) {
-      SP500_TICKERS.forEach(t => {
-        if (json.data[t.s] !== undefined) t.p = json.data[t.s];
-      });
+    if (json.data && json.data.length > 0) {
+      SP500_TICKERS = json.data.map(d => ({
+        s: d.symbol,
+        p: d.change_1d_pct || 0
+      }));
       renderHeatmap();
     }
   } catch(e) { console.error('Equity heatmap error:', e); }
