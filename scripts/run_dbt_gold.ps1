@@ -21,6 +21,7 @@ function Log($msg) {
 function Die($msg) {
     Log "ERROR: $msg"
     Log "Pipeline aborted."
+    & python "$projectRoot\scripts\alert.py" "Pipeline Failed" "Step failed: $msg`n`nCheck log: $logPath"
     exit 1
 }
 
@@ -86,4 +87,5 @@ if ($LASTEXITCODE -ne 0) {
 Log "Step 4: dbt Gold OK"
 
 Log "===== dbt Gold pipeline complete ====="
+& python "$projectRoot\scripts\alert.py" "Pipeline OK" "dbt Gold pipeline completed successfully at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')."
 exit 0
