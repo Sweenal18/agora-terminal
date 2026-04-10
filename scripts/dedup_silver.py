@@ -1,6 +1,12 @@
 import duckdb
-con = duckdb.connect(r'C:\Projects\agora-terminal\agora-terminal\transform\dbt\agora.duckdb')
-print("Before:", con.execute("SELECT COUNT(1) FROM agora.main.silver_equity_ohlcv_daily").fetchone())
+import sys
+
+db_path = r'C:\Projects\agora-terminal\agora-terminal\transform\dbt\agora.duckdb'
+con = duckdb.connect(db_path)
+
+before = con.execute("SELECT COUNT(1) FROM agora.main.silver_equity_ohlcv_daily").fetchone()[0]
+print(f"Before: {before} rows")
+
 con.execute("""
 CREATE OR REPLACE TABLE agora.main.silver_equity_ohlcv_daily AS
 SELECT DISTINCT ON (symbol, trade_date)
@@ -9,6 +15,8 @@ SELECT DISTINCT ON (symbol, trade_date)
 FROM agora.main.silver_equity_ohlcv_daily
 ORDER BY symbol, trade_date, processed_at DESC
 """)
-print("After:", con.execute("SELECT COUNT(1) FROM agora.main.silver_equity_ohlcv_daily").fetchone())
+
+after = con.execute("SELECT COUNT(1) FROM agora.main.silver_equity_ohlcv_daily").fetchone()[0]
+print(f"After: {after} rows (removed {before - after} duplicates)")
 con.close()
-print("Done")
+sys.exit(0)
