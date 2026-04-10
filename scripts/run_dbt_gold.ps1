@@ -26,6 +26,14 @@ function Die($msg) {
 
 Log "===== dbt Gold pipeline starting ====="
 
+# Step 0 - Backup Bronze JSONL to MinIO
+Log "Step 0: Backing up Bronze JSONL to MinIO..."
+$result = & python "$projectRoot\scripts\backup_bronze.py" 2>&1
+Log "  $result"
+if ($LASTEXITCODE -ne 0) {
+    Log "WARNING: Bronze backup failed -- continuing pipeline"
+}
+
 # Step 1 - Clean up orphan docker-dbt-run-* containers
 Log "Step 1: Cleaning orphan dbt containers..."
 $orphans = docker ps -a --filter "name=docker-dbt-run" --format "{{.Names}}" 2>$null
