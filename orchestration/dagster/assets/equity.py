@@ -28,23 +28,18 @@ def get_symbols_and_latest_dates() -> tuple[list[str], dict[str, str]]:
     """
     conn = duckdb.connect(DUCKDB_PATH, read_only=True)
     try:
-        symbols = [
-            r[0] for r in conn.execute("""
-                SELECT DISTINCT symbol
-                FROM agora.main_gold.dim_instruments
-                WHERE is_current = TRUE
-                  AND asset_class = 'equity'
-                ORDER BY symbol
-            """).fetchall()
-        ]
-        latest_dates = {
-            r[0]: r[1].strftime("%Y-%m-%d")
-            for r in conn.execute("""
-                SELECT symbol, MAX(trade_date)::DATE as latest
-                FROM agora.main.silver_equity_ohlcv_daily
-                GROUP BY symbol
-            """).fetchall()
-        }
+        try:
+            symbols = [r[0] for r in conn.execute("""SELECT DISTINCT symbol FROM agora.main_gold.dim_instruments WHERE is_current = TRUE AND asset_class = 'equity' ORDER BY symbol""").fetchall()]
+            if not symbols:
+                log.warning("dim_instruments empty, using fallback")
+                symbols = ["AAPL","MSFT","NVDA","AMZN","GOOGL","META","TSLA","JPM","V","XOM","UNH","JNJ","PG","MA","AVGO","HD","MRK","COST","CVX","ABBV","WMT","BAC","CSCO","CRM","MCD","PEP","TMO","ACN","LIN","AMD","INTC","INTU","IBM","DHR","GOOG","ABT","ADBE","GE","HON","NOW","DE","CAT","TXN","AMAT","NFLX"]
+        except Exception as e:
+            log.warning(f"dim_instruments not available, using fallback: {e}")
+            symbols = ["AAPL","MSFT","NVDA","AMZN","GOOGL","META","TSLA","JPM","V","XOM","UNH","JNJ","PG","MA","AVGO","HD","MRK","COST","CVX","ABBV","WMT","BAC","CSCO","CRM","MCD","PEP","TMO","ACN","LIN","AMD","INTC","INTU","IBM","DHR","GOOG","ABT","ADBE","GE","HON","NOW","DE","CAT","TXN","AMAT","NFLX"]
+        try:
+            latest_dates = {r[0]: r[1].strftime("%Y-%m-%d") for r in conn.execute("""SELECT symbol, MAX(trade_date)::DATE as latest FROM agora.main.silver_equity_ohlcv_daily GROUP BY symbol""").fetchall()}
+        except Exception:
+            latest_dates = {}
     finally:
         conn.close()
     return symbols, latest_dates

@@ -174,32 +174,34 @@ def get_equity_ohlcv(symbol: str, timeframe: str, limit: int):
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
         if start_date:
             rows = conn.execute("""
-                SELECT open, high, low, close, volume, trade_date
+                SELECT trade_date, MAX(open) as open, MAX(high) as high, MIN(low) as low, MAX(close) as close, MAX(volume) as volume
                 FROM agora.main.silver_equity_ohlcv_daily
                 WHERE symbol = ? AND trade_date >= CAST(? AS DATE)
+                GROUP BY trade_date
                 ORDER BY trade_date ASC
                 LIMIT ?
             """, [symbol, start_date, limit]).fetchall()
         else:
             rows = conn.execute("""
-                SELECT open, high, low, close, volume, trade_date
+                SELECT trade_date, MAX(open) as open, MAX(high) as high, MIN(low) as low, MAX(close) as close, MAX(volume) as volume
                 FROM agora.main.silver_equity_ohlcv_daily
                 WHERE symbol = ?
+                GROUP BY trade_date
                 ORDER BY trade_date ASC
                 LIMIT ?
             """, [symbol, limit]).fetchall()
         conn.close()
         data = []
         for r in rows:
-            ts = to_unix(str(r[5])[:10])
+            ts = to_unix(str(r[0])[:10])
             if ts:
                 data.append({
                     "time":   ts,
-                    "open":   float(r[0]),
-                    "high":   float(r[1]),
-                    "low":    float(r[2]),
-                    "close":  float(r[3]),
-                    "volume": float(r[4]),
+                    "open":   float(r[1]),
+                    "high":   float(r[2]),
+                    "low":    float(r[3]),
+                    "close":  float(r[4]),
+                    "volume": float(r[5]),
                 })
         return {"symbol": symbol, "timeframe": timeframe, "data": data, "source": "duckdb"}
     except Exception as e:

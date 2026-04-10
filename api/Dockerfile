@@ -15,5 +15,4 @@ RUN pip install --no-cache-dir --timeout=300 \
     httpx==0.27.0 \
     groq==0.9.0
 COPY api/ ./api/
-COPY transform/dbt/agora.duckdb ./transform/dbt/agora.duckdb
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

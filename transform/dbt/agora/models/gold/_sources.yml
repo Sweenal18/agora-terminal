@@ -78,7 +78,7 @@ sources:
     description: US macroeconomic indicators from the FRED API.
     schema: main
     tables:
-      - name: silver_macro_indicators
+      - name: silver_macro_pulse
         description: One row per (series_id, date). FRED time series data points.
         loaded_at_field: processed_at
         freshness:
