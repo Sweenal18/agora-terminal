@@ -149,6 +149,15 @@ def silver_equity_ohlcv_daily(context: AssetExecutionContext):
             FROM read_json_auto('{BRONZE_FILE}')
             WHERE close > 0 AND volume > 0 AND open > 0 AND high >= low AND symbol IS NOT NULL
         """)
+        # Deduplicate: keep latest processed_at per (symbol, trade_date)
+        conn.execute("""
+            CREATE OR REPLACE TABLE agora.main.silver_equity_ohlcv_daily AS
+            SELECT DISTINCT ON (symbol, trade_date)
+                symbol, trade_date, open, high, low, close, volume,
+                vwap, trade_count, source, adjusted, processed_at
+            FROM agora.main.silver_equity_ohlcv_daily
+            ORDER BY symbol, trade_date, processed_at DESC
+        """)
         count = conn.execute("SELECT COUNT(*) FROM agora.main.silver_equity_ohlcv_daily").fetchone()[0]
         sym_count = conn.execute("SELECT COUNT(DISTINCT symbol) FROM agora.main.silver_equity_ohlcv_daily").fetchone()[0]
     finally:
