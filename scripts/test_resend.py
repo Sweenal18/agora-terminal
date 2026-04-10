@@ -1,5 +1,4 @@
 import requests
-import json
 
 RESEND_API_KEY = "re_d5YKQTBr_MauCmbp7csTU4QEzJL48dUc8"
 

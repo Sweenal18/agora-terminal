@@ -1,6 +1,5 @@
 import boto3
 import sys
-import os
 from datetime import datetime, timedelta
 from botocore.client import Config
 
@@ -24,7 +23,7 @@ key = f"equity/polygon_bronze_{today}.jsonl"
 
 print(f"Uploading {SOURCE} -> {BUCKET}/{key}...")
 s3.upload_file(SOURCE, BUCKET, key)
-print(f"Upload complete.")
+print("Upload complete.")
 
 # Delete backups older than KEEP_DAYS
 deleted = 0

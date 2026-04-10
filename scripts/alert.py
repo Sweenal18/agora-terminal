@@ -1,6 +1,5 @@
 import sys
 import requests
-import os
 from datetime import datetime
 
 RESEND_API_KEY = "re_d5YKQTBr_MauCmbp7csTU4QEzJL48dUc8"
