@@ -47,7 +47,7 @@ def data_freshness():
         row = conn.execute("SELECT MAX(date), COUNT(DISTINCT indicator) FROM agora.main.silver_macro_pulse").fetchone()
         result["macro"] = {"last_date": str(row[0]), "indicators": row[1]}
         # Fundamentals freshness
-        row = conn.execute("SELECT MAX(snapshot_date), COUNT(DISTINCT symbol) FROM agora.main.silver_equity_fundamentals").fetchone()
+        row = conn.execute("SELECT MAX(updated_at), COUNT(DISTINCT symbol) FROM agora.main.silver_equity_fundamentals").fetchone()
         result["fundamentals"] = {"last_date": str(row[0]), "symbols": row[1]}
         # Gold fct_prices freshness
         row = conn.execute("SELECT MAX(trade_date), COUNT(DISTINCT symbol) FROM agora.main_gold.fct_prices").fetchone()
