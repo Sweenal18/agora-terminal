@@ -49,7 +49,7 @@ def screen_assets(
     limit: int = 50,
 ):
     """Screen stocks using Gold layer dimensional models."""
-    cache_key = f"screen:{sector}:{market_cap_bucket}:{min_market_cap}:{max_pe}:{min_roe}:{sort_by}:{sort_dir}:{limit}:{symbol}:{max_debt_to_equity}:{min_fcf_yield}"
+    cache_key = f"screen:{sector}:{market_cap_bucket}:{min_market_cap}:{min_roe}:{sort_by}:{sort_dir}:{limit}:{max_debt_to_equity}:{min_fcf_yield}"
     cached = ttl_cache_get(cache_key)
     if cached is not None:
         return cached
