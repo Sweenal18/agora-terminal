@@ -8,7 +8,11 @@ cdc_instruments AS (
         md5(symbol)::VARCHAR                AS instrument_key,
         symbol,
         company_name,
-        sector,
+        CASE
+            WHEN symbol = 'GOOG'  THEN 'Communication Services'
+            WHEN symbol = 'GOOGL' THEN 'Communication Services'
+            ELSE sector
+        END::VARCHAR AS sector,
         industry,
         exchange,
         currency,
