@@ -5,7 +5,24 @@ Joins dim_instruments + fct_prices + fct_fundamentals for filtering
 import os
 import logging
 import duckdb
+import time
+from threading import Lock
 from fastapi import APIRouter
+
+# Simple TTL cache
+_cache = {}
+_cache_lock = Lock()
+
+def ttl_cache_get(key: str):
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and time.time() < entry["expires"]:
+            return entry["value"]
+    return None
+
+def ttl_cache_set(key: str, value, ttl_seconds: int):
+    with _cache_lock:
+        _cache[key] = {"value": value, "expires": time.time() + ttl_seconds}
 
 log = logging.getLogger("api.screener")
 router = APIRouter()
@@ -32,6 +49,10 @@ def screen_assets(
     limit: int = 50,
 ):
     """Screen stocks using Gold layer dimensional models."""
+    cache_key = f"screen:{sector}:{market_cap_bucket}:{min_market_cap}:{max_pe}:{min_roe}:{sort_by}:{sort_dir}:{limit}:{symbol}:{max_debt_to_equity}:{min_fcf_yield}"
+    cached = ttl_cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
 
@@ -235,7 +256,9 @@ def screen_assets(
                 d["market_cap_b"] = round(d["market_cap"] / 1e9, 2)
             data.append(d)
         conn.close()
-        return {"data": data, "count": len(data), "source": "duckdb+gold"}
+        result = {"data": data, "count": len(data), "source": "duckdb+gold"}
+        ttl_cache_set(cache_key, result, ttl_seconds=300)
+        return result
 
     except Exception as e:
         log.error(f"Screener error: {e}")
@@ -245,6 +268,9 @@ def screen_assets(
 @router.get("/sectors")
 def get_sectors():
     """Get all available sectors from dim_instruments."""
+    cached = ttl_cache_get("sectors")
+    if cached is not None:
+        return cached
     try:
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
         rows = conn.execute("""
@@ -256,7 +282,9 @@ def get_sectors():
             ORDER BY sector
         """).fetchall()
         conn.close()
-        return {"sectors": [r[0] for r in rows]}
+        result = {"sectors": [r[0] for r in rows]}
+        ttl_cache_set("sectors", result, ttl_seconds=3600)
+        return result
     except Exception as e:
         return {"sectors": [], "error": str(e)}
 
@@ -354,6 +382,10 @@ def search_assets(q: str = "", limit: int = 10):
 @router.get("/peers/{symbol}")
 def get_peers(symbol: str, limit: int = 6):
     """Get sector peers for a symbol from dim_instruments."""
+    cache_key = f"peers:{symbol}:{limit}"
+    cached = ttl_cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
         # Get the sector for the requested symbol
@@ -390,7 +422,7 @@ def get_peers(symbol: str, limit: int = 6):
         """, [sector, symbol.upper(), limit]).fetchall()
         conn.close()
 
-        return {
+        result = {
             "symbol": symbol.upper(),
             "sector": sector,
             "peers": [
@@ -403,5 +435,7 @@ def get_peers(symbol: str, limit: int = 6):
                 for r in peers
             ]
         }
+        ttl_cache_set(cache_key, result, ttl_seconds=300)
+        return result
     except Exception as e:
         return {"symbol": symbol, "sector": None, "peers": [], "error": str(e)}
