@@ -30,3 +30,30 @@ app.include_router(filings.router, prefix="/api", tags=["filings"])
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "agora-terminal-api"}
+
+@app.get("/api/health/data")
+def data_freshness():
+    """Show when each data source was last updated."""
+    import duckdb, os
+    from datetime import datetime, timezone
+    DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
+    result = {}
+    try:
+        conn = duckdb.connect(DUCKDB_PATH, read_only=True)
+        # Equity OHLCV freshness
+        row = conn.execute("SELECT MAX(trade_date), COUNT(DISTINCT symbol) FROM agora.main.silver_equity_ohlcv_daily").fetchone()
+        result["equity_ohlcv"] = {"last_date": str(row[0]), "symbols": row[1]}
+        # Macro freshness
+        row = conn.execute("SELECT MAX(date), COUNT(DISTINCT indicator) FROM agora.main.silver_macro_pulse").fetchone()
+        result["macro"] = {"last_date": str(row[0]), "indicators": row[1]}
+        # Fundamentals freshness
+        row = conn.execute("SELECT MAX(snapshot_date), COUNT(DISTINCT symbol) FROM agora.main.silver_equity_fundamentals").fetchone()
+        result["fundamentals"] = {"last_date": str(row[0]), "symbols": row[1]}
+        # Gold fct_prices freshness
+        row = conn.execute("SELECT MAX(trade_date), COUNT(DISTINCT symbol) FROM agora.main_gold.fct_prices").fetchone()
+        result["fct_prices"] = {"last_date": str(row[0]), "symbols": row[1]}
+        conn.close()
+    except Exception as e:
+        result["duckdb_error"] = str(e)
+    result["checked_at"] = datetime.now(timezone.utc).isoformat()
+    return result
