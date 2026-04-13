@@ -72,7 +72,7 @@ def silver_macro_pulse(context: AssetExecutionContext):
                     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT (indicator, date) DO UPDATE SET
                         value = excluded.value,
-                        fetched_at = CURRENT_TIMESTAMP
+                        fetched_at = NOW()
                 """, [key, obs["value"], obs["date"]])
     finally:
         conn.close()
