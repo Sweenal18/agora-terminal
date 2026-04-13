@@ -25,15 +25,15 @@ def fetch_fred(series_id: str) -> dict:
             "api_key": FRED_API_KEY,
             "file_type": "json",
             "sort_order": "desc",
-            "limit": 1,
+            "limit": 12,
         }, timeout=15)
         data = res.json()
         obs = data.get("observations", [])
         if obs:
-            return {"value": obs[0]["value"], "date": obs[0]["date"]}
+            return [{"value": o["value"], "date": o["date"]} for o in obs if o.get("value") != "."]
     except Exception:
         pass
-    return {"value": None, "date": None}
+    return []
 
 @asset(
     group_name="macro",
@@ -57,15 +57,23 @@ def silver_macro_pulse(context: AssetExecutionContext):
                 indicator VARCHAR,
                 value VARCHAR,
                 date VARCHAR,
-                fetched_at TIMESTAMP
+                fetched_at TIMESTAMP,
+                UNIQUE (indicator, date)
             )
         """)
-        conn.execute("DELETE FROM agora.main.silver_macro_pulse")
-        for key, data in results.items():
-            conn.execute(
-                "INSERT INTO agora.main.silver_macro_pulse VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
-                [key, data["value"], data["date"]]
-            )
+        for key, observations in results.items():
+            if not isinstance(observations, list):
+                observations = [observations]
+            for obs in observations:
+                if obs.get("date") is None:
+                    continue
+                conn.execute("""
+                    INSERT INTO agora.main.silver_macro_pulse (indicator, value, date, fetched_at)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT (indicator, date) DO UPDATE SET
+                        value = excluded.value,
+                        fetched_at = CURRENT_TIMESTAMP
+                """, [key, obs["value"], obs["date"]])
     finally:
         conn.close()
 
