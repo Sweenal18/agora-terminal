@@ -1,3 +1,4 @@
+import os
 """
 Agora Terminal - Full S&P 500 OHLCV Expander
 Fetches 2 years of daily OHLCV for all 503 S&P 500 stocks from Polygon.io
@@ -18,7 +19,7 @@ from bs4 import BeautifulSoup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("sp500_expander")
 
-POLYGON_API_KEY = "hfYRQmwQvEhNkMFQj19TNPwfFS5qhdte"
+POLYGON_API_KEY = os.getenv("POLYGON_API_KEY", "")
 POLYGON_BASE    = "https://api.polygon.io"
 DUCKDB_PATH     = "transform/dbt/agora.duckdb"
 FROM_DATE       = "2024-01-01"
