@@ -97,7 +97,7 @@ Log "Step 3: dbt snapshot OK"
 # Step 4 - dbt Gold
 Log "Step 4: Running dbt Gold..."
 $result = & dbt run `
-    --select tag:gold --full-refresh `
+    --select tag:gold `
     --profiles-dir "$projectRoot\transform\dbt" `
     --project-dir "$projectRoot\transform\dbt\agora" `
     2>&1
