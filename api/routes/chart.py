@@ -10,6 +10,24 @@ import psycopg2.extras
 import duckdb
 from datetime import datetime, timedelta
 import calendar
+from functools import lru_cache
+from threading import Lock
+import time
+
+# Simple TTL cache
+_cache = {}
+_cache_lock = Lock()
+
+def ttl_cache_get(key: str):
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and time.time() < entry["expires"]:
+            return entry["value"]
+    return None
+
+def ttl_cache_set(key: str, value, ttl_seconds: int):
+    with _cache_lock:
+        _cache[key] = {"value": value, "expires": time.time() + ttl_seconds}
 
 log = logging.getLogger("api.chart")
 router = APIRouter()
@@ -169,6 +187,10 @@ def get_crypto_ohlcv(symbol: str, limit: int):
 
 def get_equity_ohlcv(symbol: str, timeframe: str, limit: int):
     """Fetch equity OHLCV from DuckDB with timeframe filtering."""
+    cache_key = f"ohlcv:{symbol}:{timeframe}:{limit}"
+    cached = ttl_cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         start_date = timeframe_to_start_date(timeframe)
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
@@ -203,7 +225,9 @@ def get_equity_ohlcv(symbol: str, timeframe: str, limit: int):
                     "close":  float(r[4]),
                     "volume": float(r[5]),
                 })
-        return {"symbol": symbol, "timeframe": timeframe, "data": data, "source": "duckdb"}
+        result = {"symbol": symbol, "timeframe": timeframe, "data": data, "source": "duckdb"}
+        ttl_cache_set(cache_key, result, ttl_seconds=900)
+        return result
     except Exception as e:
         log.error(f"DuckDB chart error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -226,6 +250,10 @@ def get_chart_info(symbol: str):
         return {"symbol": sym, **crypto_info[sym], "source": "static"}
 
     # Equity info from DuckDB Gold
+    cache_key = f"info:{sym}"
+    cached = ttl_cache_get(cache_key)
+    if cached is not None:
+        return cached
     try:
         conn = duckdb.connect(DUCKDB_PATH, read_only=True)
 
@@ -282,6 +310,7 @@ def get_chart_info(symbol: str):
             result["daily_return_pct"] = round(price_row[1], 4) if price_row[1] else None
             result["last_trade_date"] = str(price_row[2])
 
+        ttl_cache_set(cache_key, result, ttl_seconds=300)
         return result
 
     except Exception as e:
