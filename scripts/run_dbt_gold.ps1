@@ -47,6 +47,27 @@ if ($orphans) {
     Log "  No orphans found."
 }
 
+# Step 1.5 - Wait for DuckDB lock to clear
+Log "Step 1.5: Waiting for DuckDB to be available..."
+$duckdbPath = "$projectRoot\transform\dbt\agora.duckdb"
+$maxWait = 300  # 5 minutes max
+$waited = 0
+while ($waited -lt $maxWait) {
+    try {
+        $stream = [System.IO.File]::Open($duckdbPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+        $stream.Close()
+        Log "  DuckDB available after ${waited}s"
+        break
+    } catch {
+        if ($waited -eq 0) { Log "  DuckDB locked, waiting..." }
+        Start-Sleep -Seconds 10
+        $waited += 10
+    }
+}
+if ($waited -ge $maxWait) {
+    Die "DuckDB still locked after ${maxWait}s"
+}
+
 # Step 2 - Deduplicate Silver
 Log "Step 2: Deduplicating silver_equity_ohlcv_daily..."
 $dedupScript = "$projectRoot\scripts\dedup_silver.py"
