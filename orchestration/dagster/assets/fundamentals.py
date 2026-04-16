@@ -30,18 +30,27 @@ def safe_float(val, default=None):
 
 def fetch_fmp(endpoint: str, ticker: str) -> dict:
     url = f"{FMP_BASE}/{endpoint}?symbol={ticker}&apikey={FMP_API_KEY}"
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=15)
-        res.raise_for_status()
-        data = res.json()
-        if isinstance(data, dict) and "value" in data:
-            data = data["value"]
-        if isinstance(data, list) and data:
-            return data[0]
-        if isinstance(data, dict):
-            return data
-    except Exception as e:
-        log.warning(f"FMP error for {ticker} at {endpoint}: {e}")
+    for attempt in range(4):
+        try:
+            res = requests.get(url, headers=HEADERS, timeout=15)
+            if res.status_code == 429:
+                wait = 60 * (attempt + 1)
+                log.warning(f"FMP 429 for {ticker} at {endpoint}, waiting {wait}s (attempt {attempt+1}/4)")
+                time.sleep(wait)
+                continue
+            res.raise_for_status()
+            data = res.json()
+            if isinstance(data, dict) and "value" in data:
+                data = data["value"]
+            if isinstance(data, list) and data:
+                return data[0]
+            if isinstance(data, dict):
+                return data
+            return {}
+        except Exception as e:
+            log.warning(f"FMP error for {ticker} at {endpoint}: {e}")
+            if attempt < 3:
+                time.sleep(30)
     return {}
 
 def create_table(conn):
@@ -123,12 +132,19 @@ def silver_equity_fundamentals(context: AssetExecutionContext):
     create_table(conn)
     success = 0
 
-    # Load symbol universe dynamically from DB -- single source of truth
+    # Load symbol universe -- rotate through stalest symbols first (FMP free tier: 250 calls/day)
+    # 80 symbols x 3 endpoints = 240 calls, leaving buffer for retries
+    DAILY_LIMIT = 80
     try:
-        SYMBOLS = [r[0] for r in conn.execute(
-            "SELECT DISTINCT symbol FROM main.silver_equity_ohlcv_daily ORDER BY symbol"
-        ).fetchall()]
-        context.log.info(f"Loaded {len(SYMBOLS)} symbols from silver_equity_ohlcv_daily")
+        # Left join to get symbols with no fundamentals first, then stalest updated_at
+        SYMBOLS = [r[0] for r in conn.execute("""
+            SELECT s.symbol
+            FROM (SELECT DISTINCT symbol FROM main.silver_equity_ohlcv_daily) s
+            LEFT JOIN silver_equity_fundamentals f ON s.symbol = f.symbol
+            ORDER BY f.updated_at ASC NULLS FIRST
+            LIMIT ?
+        """, [DAILY_LIMIT]).fetchall()]
+        context.log.info(f"Loaded {len(SYMBOLS)} stalest symbols for today's run (limit {DAILY_LIMIT})")
     except Exception as e:
         context.log.warning(f"Could not load symbols from DB: {e}. Falling back to empty list.")
         SYMBOLS = []
@@ -141,7 +157,7 @@ def silver_equity_fundamentals(context: AssetExecutionContext):
 
         if not profile:
             context.log.warning(f"No profile for {symbol}, skipping")
-            time.sleep(0.3)
+            time.sleep(1.0)
             continue
 
         range_str = profile.get("range", "-")
@@ -181,7 +197,7 @@ def silver_equity_fundamentals(context: AssetExecutionContext):
         })
         success += 1
         context.log.info(f"  Saved {symbol} -- {profile.get('companyName')} ({profile.get('sector')})")
-        time.sleep(0.3)
+        time.sleep(1.0)
 
     conn.close()
     context.log.info(f"Done. {success}/{len(SYMBOLS)} symbols saved")
