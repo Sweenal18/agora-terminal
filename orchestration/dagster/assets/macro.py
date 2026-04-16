@@ -16,6 +16,10 @@ FRED_SERIES = {
     "cpi":          "CPIAUCSL",
     "unemployment": "UNRATE",
     "gdp":          "GDP",
+    "vix":          "VIXCLS",
+    "gdp_growth":   "A191RL1Q225SBEA",
+    "retail_sales": "RSXFS",
+    "housing":      "HOUST",
 }
 
 def fetch_fred(series_id: str) -> dict:
