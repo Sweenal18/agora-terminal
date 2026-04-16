@@ -5,6 +5,7 @@ Writes all fetched data to QuestDB for historical storage
 import os
 import logging
 import time
+import threading
 from datetime import datetime, timezone
 from fastapi import APIRouter
 import requests
@@ -14,7 +15,6 @@ import psycopg2.extras
 log = logging.getLogger("api.macro")
 
 # Simple TTL cache
-import threading
 _cache = {}
 _cache_lock = threading.Lock()
 

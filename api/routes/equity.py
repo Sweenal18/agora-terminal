@@ -6,6 +6,8 @@ import logging
 import requests
 from fastapi import APIRouter
 import duckdb
+import time
+import threading
 
 log = logging.getLogger("api.equity")
 router = APIRouter()
@@ -16,7 +18,6 @@ DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
 def get_duckdb():
     return duckdb.connect(DUCKDB_PATH, read_only=True)
 
-import time, threading
 _cache = {}
 _cache_lock = threading.Lock()
 

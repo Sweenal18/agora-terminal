@@ -1,4 +1,3 @@
-import os
 """
 Agora Terminal - Full S&P 500 OHLCV Expander
 Fetches 2 years of daily OHLCV for all 503 S&P 500 stocks from Polygon.io
@@ -9,6 +8,7 @@ Runtime: ~110 minutes (free tier rate limit)
 Usage: python ingestion/fetch_sp500_ohlcv.py
 """
 
+import os
 import logging
 import time
 import requests

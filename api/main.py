@@ -34,7 +34,8 @@ def health():
 @app.get("/api/health/data")
 def data_freshness():
     """Show when each data source was last updated."""
-    import duckdb, os
+    import duckdb
+    import os
     from datetime import datetime, timezone
     DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
     result = {}

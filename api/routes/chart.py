@@ -10,7 +10,6 @@ import psycopg2.extras
 import duckdb
 from datetime import datetime, timedelta
 import calendar
-from functools import lru_cache
 from threading import Lock
 import time
 
