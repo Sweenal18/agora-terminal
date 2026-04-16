@@ -16,6 +16,21 @@ DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/app/transform/dbt/agora.duckdb")
 def get_duckdb():
     return duckdb.connect(DUCKDB_PATH, read_only=True)
 
+import time, threading
+_cache = {}
+_cache_lock = threading.Lock()
+
+def ttl_cache_get(key):
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and time.time() < entry["expires"]:
+            return entry["value"]
+    return None
+
+def ttl_cache_set(key, value, ttl_seconds):
+    with _cache_lock:
+        _cache[key] = {"value": value, "expires": time.time() + ttl_seconds}
+
 
 @router.get("/ohlcv/{symbol}")
 def get_equity_ohlcv(symbol: str, limit: int = 500):
@@ -46,6 +61,9 @@ def get_equity_ohlcv(symbol: str, limit: int = 500):
 @router.get("/symbols")
 def get_symbols():
     """Get list of all available equity symbols."""
+    cached = ttl_cache_get("symbols")
+    if cached is not None:
+        return cached
     try:
         con = get_duckdb()
         rows = con.execute("""
@@ -54,7 +72,9 @@ def get_symbols():
             ORDER BY symbol
         """).fetchall()
         con.close()
-        return {"symbols": [r[0] for r in rows]}
+        result = {"symbols": [r[0] for r in rows]}
+        ttl_cache_set("symbols", result, ttl_seconds=3600)
+        return result
     except Exception as e:
         log.error(f"DuckDB error: {e}")
         return {"symbols": [], "error": str(e)}
@@ -62,6 +82,9 @@ def get_symbols():
 @router.get("/heatmap")
 def get_heatmap():
     """Get latest price and 1d change % for all equity symbols in one query."""
+    cached = ttl_cache_get("heatmap")
+    if cached is not None:
+        return cached
     try:
         con = get_duckdb()
         rows = con.execute("""
@@ -79,7 +102,9 @@ def get_heatmap():
             ORDER BY l.symbol
         """).fetchall()
         con.close()
-        return {"data": {r[0]: r[1] for r in rows}, "source": "duckdb_silver"}
+        result = {"data": {r[0]: r[1] for r in rows}, "source": "duckdb_silver"}
+        ttl_cache_set("heatmap", result, ttl_seconds=300)
+        return result
     except Exception as e:
         log.error(f"Heatmap error: {e}")
         return {"data": {}, "error": str(e)}
