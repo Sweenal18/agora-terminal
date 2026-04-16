@@ -12,6 +12,22 @@ import psycopg2
 import psycopg2.extras
 
 log = logging.getLogger("api.macro")
+
+# Simple TTL cache
+import threading
+_cache = {}
+_cache_lock = threading.Lock()
+
+def ttl_cache_get(key: str):
+    with _cache_lock:
+        entry = _cache.get(key)
+        if entry and time.time() < entry["expires"]:
+            return entry["value"]
+    return None
+
+def ttl_cache_set(key: str, value, ttl_seconds: int):
+    with _cache_lock:
+        _cache[key] = {"value": value, "expires": time.time() + ttl_seconds}
 router = APIRouter()
 
 FRED_API_KEY = os.getenv("FRED_API_KEY", "")
@@ -188,6 +204,9 @@ def get_macro_pulse():
             },
             "source": "mock_no_fred_key"
         }
+    cached = ttl_cache_get("macro_pulse")
+    if cached is not None:
+        return cached
     result = {}
     labels = {
         "fed_rate":     "Fed Funds Rate",
@@ -201,11 +220,16 @@ def get_macro_pulse():
     for key, series_id in MACRO_SERIES.items():
         obs = fetch_fred(series_id)
         result[key] = {"label": labels[key], **obs}
-    return {"data": result, "source": "fred"}
+    out = {"data": result, "source": "fred"}
+    ttl_cache_set("macro_pulse", out, ttl_seconds=600)
+    return out
 
 @router.get("/forex")
 def get_forex():
     """Live forex rates via Yahoo Finance - writes to QuestDB, calculates change from history."""
+    cached = ttl_cache_get("forex")
+    if cached is not None:
+        return cached
     result = {}
     rows_to_store = []
     for pair, ticker in FOREX_TICKERS.items():
@@ -223,11 +247,16 @@ def get_forex():
     for pair in result:
         if result[pair].get("price"):
             result[pair]["change_pct"] = change_pcts.get(pair, 0.0)
-    return {"data": result, "source": "yahoo_finance"}
+    out = {"data": result, "source": "yahoo_finance"}
+    ttl_cache_set("forex", out, ttl_seconds=120)
+    return out
 
 @router.get("/commodities")
 def get_commodities():
     """Live commodity prices via Yahoo Finance - writes to QuestDB, calculates change from history."""
+    cached = ttl_cache_get("commodities")
+    if cached is not None:
+        return cached
     result = {}
     rows_to_store = []
     for commodity, ticker in COMMODITIES_TICKERS.items():
@@ -245,7 +274,9 @@ def get_commodities():
     for commodity in result:
         if result[commodity].get("price"):
             result[commodity]["change_pct"] = change_pcts.get(commodity, 0.0)
-    return {"data": result, "source": "yahoo_finance"}
+    out = {"data": result, "source": "yahoo_finance"}
+    ttl_cache_set("commodities", out, ttl_seconds=120)
+    return out
 
 @router.get("/indices")
 def get_indices():
