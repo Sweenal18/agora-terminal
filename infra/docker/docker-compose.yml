@@ -263,6 +263,7 @@ services:
       DUCKDB_PATH: /app/transform/dbt/agora.duckdb
       BRONZE_FILE: /app/polygon_bronze.jsonl
       FMP_API_KEY: ${FMP_API_KEY:-}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
       FRED_API_KEY: ${FRED_API_KEY:-}
     volumes:
       - ../../transform/dbt:/app/transform/dbt
@@ -289,6 +290,7 @@ services:
       DUCKDB_PATH: /app/transform/dbt/agora.duckdb
       BRONZE_FILE: /app/polygon_bronze.jsonl
       FMP_API_KEY: ${FMP_API_KEY:-}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
       FRED_API_KEY: ${FRED_API_KEY:-}
     volumes:
       - ../../transform/dbt:/app/transform/dbt
@@ -317,6 +319,7 @@ services:
       DUCKDB_PATH: /app/transform/dbt/agora.duckdb
       BRONZE_FILE: /app/polygon_bronze.jsonl
       FMP_API_KEY: ${FMP_API_KEY:-}
+      FINNHUB_API_KEY: ${FINNHUB_API_KEY:-}
       FRED_API_KEY: ${FRED_API_KEY:-}
     volumes:
       - ../../transform/dbt:/app/transform/dbt

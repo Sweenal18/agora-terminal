@@ -28,7 +28,7 @@ cik_job = define_asset_job(name="cik_mapping_weekly", selection=["silver_cik_map
 fundamentals_schedule = ScheduleDefinition(job=fundamentals_job, cron_schedule="0 2 * * *", name="fundamentals_daily_schedule")
 macro_schedule = ScheduleDefinition(job=macro_job, cron_schedule="0 1 * * *", name="macro_daily_schedule")
 equity_schedule = ScheduleDefinition(job=equity_job, cron_schedule="0 0 * * *", name="equity_daily_schedule")
-data_quality_schedule = ScheduleDefinition(job=data_quality_job, cron_schedule="0 3 * * *", name="data_quality_daily_schedule")
+data_quality_schedule = ScheduleDefinition(job=data_quality_job, cron_schedule="0 12 * * *", name="data_quality_daily_schedule")
 cdc_schedule = ScheduleDefinition(job=cdc_job, cron_schedule="*/15 * * * *", name="cdc_instruments_schedule")
 cik_schedule = ScheduleDefinition(job=cik_job, cron_schedule="0 4 * * 0", name="cik_mapping_weekly_schedule")
 

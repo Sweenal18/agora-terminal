@@ -1,7 +1,7 @@
 {{
     config(
         materialized         = 'incremental',
-        incremental_strategy = 'append',
+        incremental_strategy = 'delete+insert',
         unique_key           = ['instrument_key', 'date_key'],
         tags                 = ['gold', 'fact']
     )

@@ -19,7 +19,19 @@ final AS (
         indicator                                                  AS series_id,
         indicator                                                  AS series_name,
         CAST(date AS DATE)                                         AS observation_date,
-        NULL::VARCHAR                                              AS unit,
+        CASE
+            WHEN indicator IN ('DFF', 'FEDFUNDS')                          THEN 'percent'
+            WHEN indicator IN ('T10Y2Y', 'T10Y3M', 'T5Y5E', 'T10YIE')    THEN 'percent'
+            WHEN indicator IN ('CPIAUCSL', 'CPILFESL', 'PCEPI')           THEN 'index'
+            WHEN indicator IN ('UNRATE')                                    THEN 'percent'
+            WHEN indicator IN ('ICSA', 'PAYEMS')                           THEN 'thousands'
+            WHEN indicator IN ('GDP', 'GDPC1')                             THEN 'billions_usd'
+            WHEN indicator IN ('INDPRO')                                    THEN 'index'
+            WHEN indicator IN ('VIXCLS')                                    THEN 'index'
+            WHEN indicator IN ('BAMLH0A0HYM2')                             THEN 'percent'
+            WHEN indicator IN ('M2SL', 'M1SL')                             THEN 'billions_usd'
+            ELSE 'unknown'
+        END::VARCHAR                                               AS unit,
         TRY_CAST(value AS DOUBLE)                                  AS indicator_value,
         CASE
             WHEN indicator IN ('DFF', 'FEDFUNDS')                          THEN 'interest_rate'

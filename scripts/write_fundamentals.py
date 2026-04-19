@@ -1,4 +1,5 @@
-"""
+﻿path = r"C:\Projects\agora-terminal\agora-terminal\orchestration\dagster\assets\fundamentals.py"
+content = '''"""
 Fundamentals asset -- fetches Finnhub data for S&P 500 and writes to DuckDB silver layer.
 Switched from FMP (250 calls/day cap) to Finnhub (60 calls/min, no daily cap).
 """
@@ -202,3 +203,8 @@ def silver_equity_fundamentals(context: AssetExecutionContext):
     conn.close()
     context.log.info(f"Done. {success}/{len(SYMBOLS)} symbols saved")
     return {"records_written": success}
+'''
+
+with open(path, "w", encoding="utf-8", newline="\n") as f:
+    f.write(content)
+print("Written successfully")

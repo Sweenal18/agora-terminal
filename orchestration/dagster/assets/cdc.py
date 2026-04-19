@@ -14,7 +14,7 @@ from kafka import KafkaConsumer
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:29092")
 KAFKA_TOPIC = "agora.public.instruments"
 DUCKDB_PATH = os.getenv("DUCKDB_PATH", "/data/agora.duckdb")
-CONSUMER_GROUP = "agora-cdc-dagster"
+CONSUMER_GROUP = "agora-cdc-dagster-v2"
 
 
 def _parse_ts(raw_ts) -> str:
@@ -29,8 +29,7 @@ def _parse_ts(raw_ts) -> str:
 
 def _ensure_table(conn: duckdb.DuckDBPyConnection) -> None:
     conn.execute("""
-        CREATE SCHEMA IF NOT EXISTS agora.main;
-        CREATE TABLE IF NOT EXISTS agora.main.silver_instruments (
+        CREATE TABLE IF NOT EXISTS main.silver_instruments (
             symbol VARCHAR PRIMARY KEY,
             company_name VARCHAR,
             sector VARCHAR,
@@ -57,7 +56,7 @@ def _upsert_record(conn: duckdb.DuckDBPyConnection, record: dict) -> str:
     updated_at = _parse_ts(record.get("updated_at"))
 
     conn.execute("""
-        INSERT INTO agora.main.silver_instruments
+        INSERT INTO main.silver_instruments
             (symbol, company_name, sector, industry, exchange, country,
              currency, asset_class, market_cap, cdc_updated_at, cdc_deleted, ingested_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
@@ -124,7 +123,7 @@ def silver_instruments_cdc(context: AssetExecutionContext) -> Output[dict]:
     context.log.info(f"CDC run complete: {counts['upsert']} upserts, {counts['delete']} deletes, {counts['skip']} skipped")
 
     conn_ro = duckdb.connect(DUCKDB_PATH, read_only=True)
-    row_count = conn_ro.execute("SELECT COUNT(*) FROM agora.main.silver_instruments").fetchone()[0]
+    row_count = conn_ro.execute("SELECT COUNT(*) FROM main.silver_instruments").fetchone()[0]
     conn_ro.close()
 
     return Output(
