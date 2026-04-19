@@ -1,12 +1,13 @@
-﻿import requests
+﻿import subprocess
 import time
+
+import requests
 
 # Stop connector first
 requests.delete("http://localhost:8083/connectors/agora-instruments-cdc")
 print("Connector deleted, waiting 5s...")
 time.sleep(5)
 
-import subprocess
 # Now drop the slot
 result = subprocess.run([
     "docker", "exec", "agora-postgres", "psql", "-U", "agora", "-d", "agora",
